@@ -335,7 +335,7 @@ class HomePage(QWidget):
         btn_map = QPushButton("🗺️ Campus Map")
         btn_map.clicked.connect(lambda: self.main_window.show_page("MapPage"))
         btn_map.setStyleSheet("""
-            background-color: #A2D729;
+            background-color: #30D1E4;
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -435,7 +435,7 @@ class ResourcesPage(QWidget):
         btn_se = QPushButton("🔬 S&E")
         btn_se.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16578"))
         btn_se.setStyleSheet("""
-            background-color: #30D1E4;   /* Bootstrap green fbe35c*/
+            background-color: #FBE35C;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
