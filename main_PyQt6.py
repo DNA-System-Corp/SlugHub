@@ -380,7 +380,7 @@ class ResourcesPage(QWidget):
         btn_mycusc = QPushButton("🧾 MyUCSC Portal")
         btn_mycusc.clicked.connect(lambda: open_link("https://my.ucsc.edu/psc/csprd/EMPLOYEE/SA/c/NUI_FRAMEWORK.PT_LANDINGPAGE.GBL?"))
         btn_mycusc.setStyleSheet("""
-            background-color: #30D1E4;   /* Bootstrap green fbe35c*/
+            background-color: #30D1E4;   /* BLUE*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px
@@ -399,7 +399,7 @@ class ResourcesPage(QWidget):
         btn_mchenry = QPushButton("📚 McHenry")
         btn_mchenry.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16577"))
         btn_mchenry.setStyleSheet("""
-            background-color: #30D1E4;   /* Bootstrap green fbe35c*/
+            background-color: #30D1E4;   /* YELLOW*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px
@@ -409,7 +409,7 @@ class ResourcesPage(QWidget):
         btn_se = QPushButton("🔬 S&E")
         btn_se.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16578"))
         btn_se.setStyleSheet("""
-            background-color: #FBE35C;   /* Bootstrap green fbe35c*/
+            background-color: #30D1E4;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px
@@ -603,7 +603,7 @@ class MapPage(QWidget):
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
-            background-color: #28A745;
+            background-color: #30D1E4;
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
