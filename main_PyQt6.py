@@ -7,7 +7,7 @@ import bcrypt
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # Add at the top
 
 from dotenv import load_dotenv
-from pymongo.mongo_client import MongoClient
+from pymongo.mongo_client import MongoClient    
 from pymongo.server_api import ServerApi
 
 from PyQt6.QtWidgets import (
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QTextEdit, QComboBox,
     QCheckBox, QGridLayout, QVBoxLayout, QHBoxLayout
 )
-from PyQt6.QtGui import QFont, QDesktopServices
+from PyQt6.QtGui import QFont, QDesktopServices, QPixmap
 from PyQt6.QtCore import Qt, QUrl
 
 ##############################
@@ -94,7 +94,7 @@ def save_class(data, user):
 ##############################
 # Constants / Styles
 ##############################
-APP_BG_COLOR     = "#F5F5F5"     # Soft light gray background
+APP_BG_COLOR     = "#7788b5"     # Soft light gray background
 TEXT_COLOR       = "#000000"     # Black text
 BUTTON_BG        = "#0077CC"     # Blue buttons
 BUTTON_HOVER     = "#3399FF"     # Lighter blue on hover
@@ -128,11 +128,13 @@ class LoginPage(QWidget):
         # Username
         layout.addWidget(QLabel("Username:"))
         self.username_edit = QLineEdit()
+        self.username_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         layout.addWidget(self.username_edit)
 
         # Password
         layout.addWidget(QLabel("Password:"))
         self.password_edit = QLineEdit()
+        self.password_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.password_edit)
 
@@ -148,7 +150,8 @@ class LoginPage(QWidget):
             background-color: #28A745;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_login)
 
@@ -158,11 +161,20 @@ class LoginPage(QWidget):
             background-color: #30D1E4;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_register)
 
         layout.addStretch()
+
+        # Adding in slug image
+        label = QLabel(self) 
+        pixmap = QPixmap('slug4.png')
+        scaled_pixmap = pixmap.scaled(500, 350)
+        label.setPixmap(scaled_pixmap)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
 
                                    
 
@@ -196,22 +208,26 @@ class RegisterPage(QWidget):
         # Username
         layout.addWidget(QLabel("Username:"))
         self.user_edit = QLineEdit()
+        self.user_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         layout.addWidget(self.user_edit)
 
         # Email
         layout.addWidget(QLabel("Email:"))
         self.email_edit = QLineEdit()
+        self.email_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         layout.addWidget(self.email_edit)
 
         # Password
         layout.addWidget(QLabel("Password:"))
         self.pass_edit = QLineEdit()
+        self.pass_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.pass_edit)
 
         # Confirm Password
         layout.addWidget(QLabel("Confirm Password:"))
         self.confirm_edit = QLineEdit()
+        self.confirm_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.confirm_edit.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.confirm_edit)
 
@@ -225,7 +241,8 @@ class RegisterPage(QWidget):
             background-color: #5BB2F7;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_register)
 
@@ -236,7 +253,8 @@ class RegisterPage(QWidget):
             background-color: #28A745;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_back)
 
@@ -285,7 +303,8 @@ class HomePage(QWidget):
             background-color: #30D1E4;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_schedule)
 
@@ -295,7 +314,8 @@ class HomePage(QWidget):
             background-color: #FBE35C;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_resources)
 
@@ -309,6 +329,7 @@ class HomePage(QWidget):
             min-height: 30px;
             min-width: 30x;
             font-size: 12px;
+            border: 2px solid #000000
         """)
         
         btn_map = QPushButton("🗺️ Campus Map")
@@ -318,6 +339,7 @@ class HomePage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_map)
         
@@ -363,7 +385,8 @@ class ResourcesPage(QWidget):
             background-color: #30D1E4;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_textbook)
 
@@ -373,7 +396,8 @@ class ResourcesPage(QWidget):
             background-color: #FBE35C;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_canvas)
 
@@ -383,7 +407,8 @@ class ResourcesPage(QWidget):
             background-color: #30D1E4;   /* BLUE*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_mycusc)
 
@@ -402,7 +427,8 @@ class ResourcesPage(QWidget):
             background-color: #30D1E4;   /* YELLOW*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         hbox.addWidget(btn_mchenry)
 
@@ -412,7 +438,8 @@ class ResourcesPage(QWidget):
             background-color: #30D1E4;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         hbox.addWidget(btn_se)
 
@@ -423,7 +450,8 @@ class ResourcesPage(QWidget):
             background-color: #28A745;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -454,12 +482,14 @@ class ScheduleInputPage(QWidget):
         # Class Name
         lbl_class = QLabel("Class Name:")
         self.edit_class_name = QLineEdit()
+        self.edit_class_name.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         form_layout.addWidget(lbl_class, 0, 0, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addWidget(self.edit_class_name, 0, 1)
 
         # Location
         lbl_location = QLabel("Location:")
         self.edit_location = QLineEdit()
+        self.edit_location.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         form_layout.addWidget(lbl_location, 1, 0, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addWidget(self.edit_location, 1, 1)
 
@@ -480,6 +510,7 @@ class ScheduleInputPage(QWidget):
         # Start Time
         lbl_start_time = QLabel("Start Time:")
         self.combo_start_time = QComboBox()
+        self.combo_start_time.setStyleSheet("QComboBox { background-color: #FFFFFF}")
         form_layout.addWidget(lbl_start_time, 3, 0, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addWidget(self.combo_start_time, 3, 1)
 
@@ -489,12 +520,14 @@ class ScheduleInputPage(QWidget):
             background-color: #FBE35C;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 6px 10px
+            padding: 6px 10px;
+            border: 2px solid #000000;
         """)
 
         main_layout.addWidget(btn_add, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self.class_display = QTextEdit()
+        self.class_display.setStyleSheet("QTextEdit { background-color: #FFFFFF}")
         self.class_display.setReadOnly(True)
         main_layout.addWidget(self.class_display)
 
@@ -504,7 +537,8 @@ class ScheduleInputPage(QWidget):
             background-color: #28A745;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         main_layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -607,6 +641,7 @@ class MapPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
