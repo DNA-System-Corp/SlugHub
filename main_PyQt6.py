@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from pymongo.mongo_client import MongoClient    
 from pymongo.server_api import ServerApi
 
-from PyQt6.QtCore import Qt, QObject, pyqtSlot, QUrl
+from PyQt6.QtCore import Qt, QObject, pyqtSlot, QUrl, QVariant
 from PyQt6.QtGui import QFont, QGuiApplication
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QStackedWidget, QWidget, QLabel, QLineEdit,
@@ -22,6 +22,10 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtGui import QGuiApplication, QDesktopServices, QPixmap
 from eventscraper import scrape_ucsc_events
+
+from PyQt6.QtWebEngineCore import QWebEnginePage
+
+import geocoder
 
 
 
@@ -804,6 +808,9 @@ class ScheduleInputPage(QWidget):
 ##############################
 # MapPage with route-to-next-class
 ##############################
+
+api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+
 DAY_MAP = {
     0: "M",   # Monday
     1: "T",
@@ -989,10 +996,6 @@ class UCSCEventsPage(QWidget):
 
 
 class MapBridge(QObject):
-    """
-    Bridge for the web channel. JavaScript calls window.bridge.mapReady()
-    when google maps has initialized.
-    """
     def __init__(self, map_page):
         super().__init__()
         self.map_page = map_page
@@ -1000,6 +1003,16 @@ class MapBridge(QObject):
     @pyqtSlot()
     def mapReady(self):
         self.map_page.on_map_ready()
+
+    @pyqtSlot(result=QVariant)
+    def getUserLocation(self):
+        g = geocoder.ip('me')
+        if g.ok:
+            print("🛰️ Python location:", g.latlng)
+            return {"lat": g.latlng[0], "lng": g.latlng[1]}
+        else:
+            print("⚠️ Could not get location")
+            return {"lat": 36.9914, "lng": -122.0609}  # UCSC fallback
 
 class MapPage(QWidget):
     def __init__(self, parent=None, main_window=None):
@@ -1009,8 +1022,6 @@ class MapPage(QWidget):
         self.pending_destination = None
         self.current_travel_mode = "DRIVING"
 
-        # Track if we've loaded the map yet
-        self._map_loaded = False
 
         # Main layout
         self.layout = QVBoxLayout()
@@ -1058,35 +1069,28 @@ class MapPage(QWidget):
         self.layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
     def load_map(self):
-        """ Actually load the QWebEngine map only once. """
-        if self._map_loaded:
-            return  # Already loaded
-
-        self._map_loaded = True
-
-        load_dotenv()
         api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_MAPS_API_KEY not found in .env")
 
-        # Read map.html and inject QWebChannel + API key
         with open("map.html", "r", encoding="utf-8") as f:
             html = f.read().replace("YOUR_API_KEY", api_key)
-        # Insert the qwebchannel script
-        html = html.replace("</head>", "<script src='qrc:///qtwebchannel/qwebchannel.js'></script></head>")
 
-        # Now create the browser and bridge
+        if hasattr(self, 'browser'):
+            self.layout.removeWidget(self.browser)
+            self.browser.deleteLater()
+
         self.browser = QWebEngineView()
         self.channel = QWebChannel()
         self.bridge = MapBridge(self)
         self.channel.registerObject("bridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
-
-        # Load the HTML
         self.browser.setHtml(html)
 
-        # Insert the browser at the *top* of the layout, or wherever you like
         self.layout.insertWidget(0, self.browser)
+
+        self.map_is_ready = False
+        self.pending_destination = None
 
     def set_travel_mode(self, mode):
         """Change travel mode and tell the JS side (setTravelMode)."""
@@ -1170,6 +1174,19 @@ class MapPage(QWidget):
         next_class = sorted(upcoming_classes, key=lambda x: (x[0], x[1]["start_time"]))[0][1]
         print(f"Next class: {next_class['name']} at {next_class['start_time']} → {next_class['location']}")
         self.route_to(next_class["location"])
+
+class CustomWebEnginePage(QWebEnginePage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def featurePermissionRequested(self, securityOrigin, feature):
+        if feature == QWebEnginePage.Feature.Geolocation:
+            print("🔐 Granting geolocation permission.")
+            self.setFeaturePermission(
+                securityOrigin,
+                feature,
+                QWebEnginePage.PermissionPolicy.PermissionGrantedByUser
+            )
 
 
 ##############################
