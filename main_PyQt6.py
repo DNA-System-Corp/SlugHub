@@ -1,9 +1,11 @@
 # pyqt6_app.py
-
+from functools import partial
 import sys
 import os
 import bcrypt
+import uuid
 
+from PyQt6.QtWidgets import QSizePolicy
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # Add at the top
 
 from dotenv import load_dotenv
@@ -85,8 +87,7 @@ def get_all_classes(user):
 def save_class(data, user):
     try:
         data["user"] = user
-        # Insert only if not duplicate
-        if not collection.find_one(data):
+        if not collection.find_one({"user": user, "id": data["id"]}):
             collection.insert_one(data)
     except Exception as e:
         print(f"[MongoDB] Error saving class: {e}")
@@ -163,6 +164,7 @@ class LoginPage(QWidget):
         layout.addWidget(btn_register)
 
         layout.addStretch()
+        
 
                                    
 
@@ -279,7 +281,7 @@ class HomePage(QWidget):
         layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(20)
 
-        btn_schedule = QPushButton("🗓️ Enter Class Schedule")
+        btn_schedule = QPushButton("🗓️ Class Schedule")
         btn_schedule.clicked.connect(lambda: self.main_window.show_page("ScheduleInputPage"))
         btn_schedule.setStyleSheet("""
             background-color: #30D1E4;   /* Bootstrap green */
@@ -419,7 +421,7 @@ class ResourcesPage(QWidget):
         layout.addSpacing(20)
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
-        btn_se.setStyleSheet("""
+        btn_back.setStyleSheet("""
             background-color: #28A745;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
@@ -486,32 +488,38 @@ class ScheduleInputPage(QWidget):
         btn_add = QPushButton("➕ Add Class")
         btn_add.clicked.connect(self.add_class)
         btn_add.setStyleSheet("""
-            background-color: #FBE35C;   /* Bootstrap green fbe35c*/
+            background-color: #FBE35C;
             color: white;
             border-radius: 6px;
-            padding: 6px 10px
+            padding: 6px 10px;
         """)
-
         main_layout.addWidget(btn_add, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        self.class_display = QTextEdit()
-        self.class_display.setReadOnly(True)
-        main_layout.addWidget(self.class_display)
+        # Warning label
+        self.warning_label = QLabel("")
+        self.warning_label.setStyleSheet("color: red;")
+        main_layout.addWidget(self.warning_label)
 
+        # Class display area
+        self.class_display_container = QWidget()
+        self.class_display_layout = QVBoxLayout()
+        self.class_display_container.setLayout(self.class_display_layout)
+        main_layout.addWidget(self.class_display_container)
+
+        # Back button
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
-            background-color: #28A745;   /* Bootstrap green fbe35c*/
+            background-color: #28A745;
             color: white;
             border-radius: 6px;
-            padding: 8px 14px
+            padding: 8px 14px;
         """)
         main_layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         main_layout.addStretch()
 
     def update_start_times(self):
-        """Generate start times based on selected days."""
         selected_days = [d for d, cb in self.days_vars.items() if cb.isChecked()]
         mwf = ["8:00 AM", "9:20 AM", "10:40 AM", "12:00 PM", "1:20 PM", "2:40 PM", "4:00 PM"]
         evening = ["5:20 PM", "7:10 PM"]
@@ -539,20 +547,24 @@ class ScheduleInputPage(QWidget):
         days = [d for d, cb in self.days_vars.items() if cb.isChecked()]
 
         if not name or not location or not days or "(select days)" in start_time:
-            self.class_display.append("⚠️ Please complete all fields correctly.\n")
+            self.warning_label.setText("⚠️ Please complete all fields correctly.")
             return
 
+        self.warning_label.setText("")
+
         class_info = {
+            "id": str(uuid.uuid4()),
             "name": name,
             "location": location,
             "start_time": start_time,
             "days": days
         }
 
-        self.schedule_data.append(class_info)
         if current_user:
             save_class(class_info, current_user)
-        self.display_schedule()
+
+        # Always reload from DB to avoid duplicates
+        self.refresh()
 
         # Reset form
         self.edit_class_name.clear()
@@ -561,19 +573,99 @@ class ScheduleInputPage(QWidget):
             cb.setChecked(False)
         self.update_start_times()
 
+    def delete_class(self, class_info):
+        global current_user
+
+        class_id = class_info.get("id")
+
+        # Remove from database
+        if current_user:
+            try:
+                collection.delete_one({
+                    "user": current_user,
+                    "id": class_id
+                })
+            except Exception as e:
+                print(f"[MongoDB] Error deleting class: {e}")
+
+        # Reload updated schedule from DB
+        self.refresh()
+
     def display_schedule(self):
-        self.class_display.clear()
+        # Clear all previous class widgets
+        for i in reversed(range(self.class_display_layout.count())):
+            widget_to_remove = self.class_display_layout.itemAt(i).widget()
+            if widget_to_remove:
+                widget_to_remove.setParent(None)
+
         for cls in self.schedule_data:
-            line = f"{cls['name']} @ {cls['location']} on {', '.join(cls['days'])} at {cls['start_time']}\n"
-            self.class_display.append(line)
+            days = cls["days"]
+            day_str = ''.join(days)
+            if days == ["T", "Th"]:
+                day_str = "TuTh"
+            elif set(days) == {"M", "W"}:
+                day_str = "MW"
+            elif set(days) == {"M", "W", "F"}:
+                day_str = "MWF"
+
+            # Class info block
+            label = QLabel(f"{cls['name']}\n{day_str} @ {cls['start_time']}\n{cls['location']}")
+            label.setStyleSheet("""
+                QLabel {
+                    background-color: #DDEEFF;
+                    color: #000000;
+                    border: 1px solid #999;
+                    border-radius: 6px;
+                    padding: 10px;
+                    font-size: 14px;
+                }
+                QLabel:hover {
+                    background-color: #c9def2;
+                }
+            """)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setFixedWidth(250)
+
+            # Trash button
+            btn_delete = QPushButton("🗑️")
+            btn_delete.setFixedSize(12, 12)  # Comfortable clickable size
+            btn_delete.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF6666;
+                    color: white;
+                    border-radius: 6px;
+                    font-size: 10px;
+                    padding: 0px;
+                }
+                QPushButton:hover {
+                    background-color: #FF4444;
+                }
+            """)
+            btn_delete.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            btn_delete.clicked.connect(partial(self.delete_class, cls))
+
+            # Layout for class block and delete button
+            block_layout = QHBoxLayout()
+            block_layout.setSpacing(10)
+            block_layout.addWidget(label)
+            block_layout.addWidget(btn_delete)
+
+            # Wrap the block_layout in another QWidget
+            class_block_widget = QWidget()
+            outer_layout = QHBoxLayout()
+            outer_layout.addStretch()
+            outer_layout.addLayout(block_layout)
+            outer_layout.addStretch()
+            class_block_widget.setLayout(outer_layout)
+
+            # Add that widget to the display layout
+            self.class_display_layout.addWidget(class_block_widget)
 
     def refresh(self):
-        """Called each time we show this page, to re-fetch the schedule from DB."""
         global current_user
+        self.schedule_data = []  # Clear previous data
         if current_user:
             self.schedule_data = get_all_classes(current_user)
-        else:
-            self.schedule_data = []
         self.display_schedule()
 
 
@@ -603,13 +695,14 @@ class MapPage(QWidget):
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
-            background-color: #30D1E4;
+            background-color: #28A745;   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
-            padding: 8px 14px;
+            padding: 8px 14px
         """)
         layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
+        layout.addStretch()
 
 
 ##############################
@@ -620,7 +713,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SlugHub - Student Assistance")
-        self.setFixedSize(500, 600)
+        self.setFixedSize(800, 700)
 
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
@@ -647,12 +740,12 @@ class MainWindow(QMainWindow):
         self.show_page("LoginPage")
 
     def show_page(self, page_name):
-        """Switch to the page by name. If it's the ScheduleInputPage, call refresh()."""
         if page_name not in self.page_ids:
             return
         idx = self.page_ids[page_name]
         widget = self.stacked_widget.widget(idx)
-        # If the page is the schedule page, refresh
+
+        # Refresh if it's the schedule input page
         if page_name == "ScheduleInputPage":
             widget.refresh()
 
