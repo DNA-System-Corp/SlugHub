@@ -738,6 +738,13 @@ class ScheduleInputPage(QWidget):
             QComboBox { background-color: #FFFFFF}
             QComboBox QAbstractItemView { background-color: #FFFFFF }
             ''')
+        # Custom Time Input (hidden by default)
+        self.combo_start_time.currentIndexChanged.connect(self.toggle_custom_time_input)
+        self.edit_custom_time = QLineEdit()
+        self.edit_custom_time.setPlaceholderText("e.g. 6:15 PM - 7:45 PM")
+        self.edit_custom_time.setStyleSheet("QLineEdit { background-color: #FFFFFF }")
+        self.edit_custom_time.hide()
+        form_layout.addWidget(self.edit_custom_time, 4, 1)  # Below start time row
         form_layout.addWidget(lbl_start_time, 3, 0, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addWidget(self.combo_start_time, 3, 1)
 
@@ -811,13 +818,17 @@ class ScheduleInputPage(QWidget):
         if not valid:
             self.combo_start_time.addItem("(select days)")
         else:
-            self.combo_start_time.addItems(valid)
-
+            self.combo_start_time.addItems(valid + ["Other..."])
+    def toggle_custom_time_input(self):
+        if self.combo_start_time.currentText() == "Other...":
+            self.edit_custom_time.show()
+        else:
+            self.edit_custom_time.hide()
     def add_class(self):
         global current_user
         name = self.edit_class_name.text().strip()
         location = self.edit_location.text().strip()
-        start_time = self.combo_start_time.currentText()
+        start_time = self.edit_custom_time.text().strip() if self.combo_start_time.currentText() == "Other..." else self.combo_start_time.currentText()
         days = [d for d, cb in self.days_vars.items() if cb.isChecked()]
 
         if not name or not location or not days or "(select days)" in start_time:
