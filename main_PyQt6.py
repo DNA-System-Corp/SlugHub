@@ -1544,9 +1544,9 @@ class MapPage(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        #
-        # 1) Top row: Travel Mode Buttons
-        #
+#
+# 1) Top row: Travel Mode Buttons
+#
         mode_layout = QHBoxLayout()
 
 #
@@ -1630,23 +1630,52 @@ class MapPage(QWidget):
         nav_layout.addWidget(btn_later)
 
         #
-        # 3) "Back to Home" Button
+        # 3) "Back to Home" Button & Label
         #
+
+        # Bottom row layout (entire row)
+        bottom_row = QHBoxLayout()
+
+        # Left stretch
+        bottom_row.addStretch(1)
+
+        # Label with border
+        self.class_counter_label = QLabel("Class 1 of 3")
+        self.class_counter_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 14px;
+                background-color: transparent;
+                border: 2px solid white;
+                border-radius: 6px;
+                padding: 6px 12px;
+            }
+        """)
+        bottom_row.addWidget(self.class_counter_label, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Spacer between label and back button
+        bottom_row.addStretch(1)
+
+        # Back button
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
             QPushButton{
-            background-color: #28A745;   /* Bootstrap green fbe35c*/
-            color: white;
-            border-radius: 6px;
-            padding: 8px 14px;
-            border: 2px solid #000000;
+                background-color: #28A745;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
             }
             QPushButton:hover{
-                background-color: #0D7024
+                background-color: #0D7024;
             }
         """)
-        self.layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
+        bottom_row.addWidget(btn_back)
+
+        # Add to the main layout
+        self.layout.addLayout(bottom_row)
+
 
     def load_map(self):
         api_key = os.getenv("GOOGLE_MAPS_API_KEY")
@@ -1682,6 +1711,14 @@ class MapPage(QWidget):
             # Optionally reroute if there's already a destination
             if self.pending_destination:
                 self.route_to(self.pending_destination)
+
+    def update_class_counter_label(self):
+        total = len(self.upcoming_classes)
+        if total > 0:
+            next_class = self.upcoming_classes[self.current_class_index][1]
+            self.class_counter_label.setText(f"Route to -> {next_class['location']}")
+        else:
+            self.class_counter_label.setText("")
 
     def on_map_ready(self):
         """
@@ -1754,6 +1791,7 @@ class MapPage(QWidget):
         next_class = self.upcoming_classes[self.current_class_index][1]
         print(f"Next class: {next_class['name']} at {next_class['start_time']} → {next_class['location']}")
         self.route_to(next_class["location"])
+        self.update_class_counter_label()
 
     def route_to_later_class(self):
         if not self.upcoming_classes or self.current_class_index >= len(self.upcoming_classes) - 2:
@@ -1765,6 +1803,7 @@ class MapPage(QWidget):
         later_class = self.upcoming_classes[self.current_class_index][1]
         print(f"Later class: {later_class['name']} at {later_class['start_time']} → {later_class['location']}")
         self.route_to(later_class["location"])
+        self.update_class_counter_label()
 
     def route_to_previous_class(self):
         if not self.upcoming_classes or self.current_class_index <= 0:
@@ -1776,6 +1815,7 @@ class MapPage(QWidget):
         previous_class = self.upcoming_classes[self.current_class_index][1]
         print(f"Previous class: {previous_class['name']} at {previous_class['start_time']} → {previous_class['location']}")
         self.route_to(previous_class["location"])
+        self.update_class_counter_label()
 
 
 class CustomWebEnginePage(QWebEnginePage):
