@@ -170,7 +170,9 @@ class LoginPage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 30px;
             }}
             QPushButton:hover {{
                 background-color: #0D7024
@@ -187,7 +189,9 @@ class LoginPage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 19px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -236,34 +240,38 @@ class RegisterPage(QWidget):
         layout.addSpacing(10)
 
         # Username
-        layout.addWidget(QLabel("Username:"))
+        layout.addWidget(QLabel("Username:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.user_edit = QLineEdit()
+        self.user_edit.setFixedWidth(400)
         self.user_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
-        layout.addWidget(self.user_edit)
+        layout.addWidget(self.user_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Email
-        layout.addWidget(QLabel("Email:"))
+        layout.addWidget(QLabel("Email:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.email_edit = QLineEdit()
+        self.email_edit.setFixedWidth(400)
         self.email_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
-        layout.addWidget(self.email_edit)
+        layout.addWidget(self.email_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Password
-        layout.addWidget(QLabel("Password:"))
+        layout.addWidget(QLabel("Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.pass_edit = QLineEdit()
+        self.pass_edit.setFixedWidth(400)
         self.pass_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        layout.addWidget(self.pass_edit)
+        layout.addWidget(self.pass_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Confirm Password
-        layout.addWidget(QLabel("Confirm Password:"))
+        layout.addWidget(QLabel("Confirm Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.confirm_edit = QLineEdit()
+        self.confirm_edit.setFixedWidth(400)
         self.confirm_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.confirm_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        layout.addWidget(self.confirm_edit)
+        layout.addWidget(self.confirm_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.message_label = QLabel("")
         self.message_label.setStyleSheet("color: red;")
-        layout.addWidget(self.message_label)
+        layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_register = QPushButton("✅ Register")
         btn_register.clicked.connect(self.register_user)
@@ -273,13 +281,16 @@ class RegisterPage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000;              
+                border: 2px solid #000000;   
+                font-family: 'Times New Roman';
+                font-size: 18px;           
             }}                     
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        layout.addWidget(btn_register)
+        btn_register.setFixedWidth(250)
+        layout.addWidget(btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_back = QPushButton("⬅ Back to Login")
         btn_back.clicked.connect(lambda: self.main_window.show_page("LoginPage"))
@@ -290,14 +301,23 @@ class RegisterPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: #0D7024
             }}
         """)
-        layout.addWidget(btn_back)
+        btn_back.setFixedWidth(250)
+        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignCenter)
 
         layout.addStretch()
+
+        label = QLabel(self)
+        pixmap = QPixmap('Sluggy.png')
+        scaled_pixmap = pixmap.scaled(500, 300)
+        label.setPixmap(scaled_pixmap)
+        layout.addWidget(label, alignment= Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
 
     def register_user(self):
         username = self.user_edit.text().strip()
@@ -319,6 +339,8 @@ class RegisterPage(QWidget):
             self.main_window.show_page("LoginPage")
         else:
             self.message_label.setStyleSheet("color: red;")
+
+    
 
 
 class HomePage(QWidget):
@@ -343,7 +365,9 @@ class HomePage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -357,10 +381,12 @@ class HomePage(QWidget):
         btn_resources.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BACK_BUTTON_BG};   /* Bootstrap green */
-                color: white;
+                color: black;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BACK_HOVER_BG}
@@ -395,7 +421,9 @@ class HomePage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -409,10 +437,12 @@ class HomePage(QWidget):
         btn_events.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BACK_BUTTON_BG};   /* Bootstrap green */
-                color: white;
+                color: black;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BACK_HOVER_BG}
@@ -466,6 +496,8 @@ class ResourcesPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -478,10 +510,12 @@ class ResourcesPage(QWidget):
         btn_canvas.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BACK_BUTTON_BG};   /* Bootstrap green fbe35c*/
-                color: white;
+                color: black;
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BACK_HOVER_BG}
@@ -498,6 +532,8 @@ class ResourcesPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -523,6 +559,8 @@ class ResourcesPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -530,15 +568,17 @@ class ResourcesPage(QWidget):
         """)
         hbox.addWidget(btn_mchenry)
 
-        btn_se = QPushButton("🔬 S&E")
+        btn_se = QPushButton("🔬 S&&E")
         btn_se.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16578"))
         btn_se.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BACK_BUTTON_BG};   /* Bootstrap green fbe35c*/
-                color: white;
+                color: black;
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BACK_HOVER_BG}
@@ -556,6 +596,8 @@ class ResourcesPage(QWidget):
             border-radius: 6px;
             padding: 8px 14px;
             border: 2px solid #000000;
+            font-family: 'Times New Roman';
+            font-size: 18px;
             }
             QPushButton:hover{
                 background-color: #0D7024
@@ -637,6 +679,8 @@ class ScheduleInputPage(QWidget):
                 border-radius: 6px;
                 padding: 6px 10px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -665,6 +709,8 @@ class ScheduleInputPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: #0D7024
@@ -877,13 +923,15 @@ class UCSCEventsPage(QWidget):
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
-            QPushButton{
-            background-color: #28A745;
-            color: white;
-            border-radius: 6px;
-            padding: 8px 14px;
+            QPushButton {
+                background-color: #28A745;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
-            QPushButton:hover{
+            QPushButton:hover {
                 background-color: #0D7024
             }
         """)
@@ -943,7 +991,8 @@ class UCSCEventsPage(QWidget):
                 background-color: #f0d954;
                 color: black;
                 border-radius: 3px;
-                font-size: 14px;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
             QPushButton:hover {
                 background-color: #d4be3f;
@@ -959,7 +1008,8 @@ class UCSCEventsPage(QWidget):
                 background-color: #2d32ad;
                 color: white;
                 border-radius: 3px;
-                font-size: 14px;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
             QPushButton:hover {
                 background-color: #1d218f;
@@ -973,9 +1023,10 @@ class UCSCEventsPage(QWidget):
         btn_calendar.setStyleSheet("""
             QPushButton {
                 background-color: #f0d954;
-                color: white;
+                color: black;
                 border-radius: 3px;
-                font-size: 14px;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
             QPushButton:hover {
                 background-color: #d4be3f;
