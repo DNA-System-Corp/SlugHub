@@ -848,6 +848,7 @@ class UCSCEventsPage(QWidget):
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self.scroll = QScrollArea()
+        self.scroll.setMinimumHeight(900)  # Or adjust height to fit more
         self.scroll.setWidgetResizable(True)
         layout.addWidget(self.scroll)
 
@@ -886,9 +887,15 @@ class UCSCEventsPage(QWidget):
     def refresh_events(self):
         self.clear_event_layout()
 
+        # Scrape new events, filter out pinned and hidden
         all_events = scrape_ucsc_events()
-        self.remaining_events = [e for e in all_events if e not in self.pinned_events]
+        self.remaining_events = [
+            e for e in all_events
+            if e["title"] not in self.hidden_event_ids and
+            not any(p["title"] == e["title"] for p in self.pinned_events)
+        ]
 
+        # Show pinned first, then top 15 minus pinned
         events_to_show = self.pinned_events + self.get_next_events(15 - len(self.pinned_events))
 
         for event in events_to_show:
@@ -905,7 +912,9 @@ class UCSCEventsPage(QWidget):
         return shown
 
     def display_event_card(self, event):
-        title = QLabel(f"🟡 {event['title']}")
+        is_pinned = any(event["title"] == e["title"] for e in self.pinned_events)
+        prefix = "📌🟡 " if is_pinned else "🟡 "
+        title = QLabel(f"{prefix}{event['title']}")
         date = QLabel(f"📆 {event['date']}")
         location = QLabel(f"📍 {event['location']}")
         price = QLabel(f"💵 {event['price'] if event['price'] else 'FREE'}")
@@ -960,13 +969,25 @@ class UCSCEventsPage(QWidget):
 
         frame = QWidget()
         frame.setLayout(card_layout)
-        frame.setStyleSheet("""
-            QWidget {
-                background-color: #3A4F7A;
+
+        is_pinned = any(event["title"] == e["title"] for e in self.pinned_events)
+        bg_color = "#3A4F7A" if not is_pinned else "#226622"  # Blue or Green when pinned
+
+        frame.setStyleSheet(f"""
+            QWidget {{
+                background-color: {bg_color};
                 border-radius: 10px;
                 border: 1px solid #cccccc;
-            }
+            }}
         """)
+
+# Prevent layout jumps
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        frame.setFixedHeight(160)  # Tweak as needed for visual balance
+
+        # Track event data for quick lookup
+        frame.event_data = event
+        self.scroll_layout.addWidget(frame)
 
         # Store the frame so we can remove it instantly
         frame.event_data = event
@@ -979,9 +1000,24 @@ class UCSCEventsPage(QWidget):
                 widget.setParent(None)
 
     def pin_event(self, event):
-        if not any(e["title"] == event["title"] for e in self.pinned_events):
-            self.pinned_events.append(event)
-        self.refresh_events()
+        if any(e["title"] == event["title"] for e in self.pinned_events):
+            return
+
+        self.pinned_events.append(event)
+
+        # Remove widget from current spot
+        for i in range(self.scroll_layout.count()):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if hasattr(widget, 'event_data') and widget.event_data["title"] == event["title"]:
+                widget.setParent(None)
+                break
+
+        # Redraw pinned event at the top
+        self.clear_event_layout()
+        events_to_show = self.pinned_events + self.get_next_events(15 - len(self.pinned_events))
+        for ev in events_to_show:
+            self.display_event_card(ev)
+        self.scroll_layout.addStretch()
 
     def quick_hide_event(self, event):
         self.hidden_event_ids.add(event["title"])
