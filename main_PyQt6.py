@@ -164,17 +164,22 @@ class LoginPage(QWidget):
         title_image = QLabel(self)
         pixmap = QPixmap('logo.png').scaled(500, 325)
         title_image.setPixmap(pixmap)
+        title_image.setStyleSheet("background: transparent;")
         layout.addWidget(title_image, alignment= Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
         # Username
-        layout.addWidget(QLabel("Username:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        user_label_text = QLabel("Username:")
+        user_label_text.setStyleSheet("background: transparent;")
+        layout.addWidget(user_label_text, alignment=Qt.AlignmentFlag.AlignCenter)
         self.username_edit = QLineEdit()
         self.username_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.username_edit.setFixedWidth(400)
         layout.addWidget(self.username_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Password
-        layout.addWidget(QLabel("Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        pass_label_text = QLabel("Password:")
+        pass_label_text.setStyleSheet("background: transparent;")
+        layout.addWidget(pass_label_text, alignment=Qt.AlignmentFlag.AlignCenter)
         self.password_edit = QLineEdit()
         self.password_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -184,7 +189,7 @@ class LoginPage(QWidget):
 
         # Message label
         self.message_label = QLabel("")
-        self.message_label.setStyleSheet("color: red;")
+        self.message_label.setStyleSheet("color: red; background: transparent")
         layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Buttons
@@ -227,6 +232,7 @@ class LoginPage(QWidget):
         layout.addWidget(btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
 
         label = QLabel(self)
+        label.setStyleSheet("background: transparent")
         pixmap = QPixmap('Sluggy.png')
         scaled_pixmap = pixmap.scaled(500, 300)
         label.setPixmap(scaled_pixmap)
@@ -261,26 +267,32 @@ class RegisterPage(QWidget):
 
         title_label = QLabel("Create Account")
         title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {TEXT_COLOR};")
+        title_label.setStyleSheet(f"color: {TEXT_COLOR}; background: transparent")
         layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(10)
 
         # Username
-        layout.addWidget(QLabel("Username:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        user_label = QLabel("Username:")
+        user_label.setStyleSheet("background: transparent;")
+        layout.addWidget(user_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.user_edit = QLineEdit()
         self.user_edit.setFixedWidth(400)
         self.user_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         layout.addWidget(self.user_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Email
-        layout.addWidget(QLabel("Email:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        email_label = QLabel("Email:")
+        email_label.setStyleSheet("background: transparent;")
+        layout.addWidget(email_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.email_edit = QLineEdit()
         self.email_edit.setFixedWidth(400)
         self.email_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         layout.addWidget(self.email_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Password
-        layout.addWidget(QLabel("Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        pass_label = QLabel("Password:")
+        pass_label.setStyleSheet("background: transparent;")
+        layout.addWidget(pass_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.pass_edit = QLineEdit()
         self.pass_edit.setFixedWidth(400)
         self.pass_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
@@ -288,7 +300,9 @@ class RegisterPage(QWidget):
         layout.addWidget(self.pass_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Confirm Password
-        layout.addWidget(QLabel("Confirm Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
+        confirm_pass_label = QLabel("Confirm Password:")
+        confirm_pass_label.setStyleSheet("background: transparent;")
+        layout.addWidget(confirm_pass_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.confirm_edit = QLineEdit()
         self.confirm_edit.setFixedWidth(400)
         self.confirm_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
@@ -296,7 +310,7 @@ class RegisterPage(QWidget):
         layout.addWidget(self.confirm_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.message_label = QLabel("")
-        self.message_label.setStyleSheet("color: red;")
+        self.message_label.setStyleSheet("color: red; background: transparent")
         layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_register = QPushButton("✅ Register")
@@ -343,6 +357,7 @@ class RegisterPage(QWidget):
         pixmap = QPixmap('Sluggy.png')
         scaled_pixmap = pixmap.scaled(500, 300)
         label.setPixmap(scaled_pixmap)
+        label.setStyleSheet("background: transparent;")
         layout.addWidget(label, alignment= Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
 
     def register_user(self):
@@ -379,6 +394,7 @@ class HomePage(QWidget):
         self.setLayout(layout)
 
         title_image = QLabel(self)
+        title_image.setStyleSheet("background: transparent;")
         pixmap = QPixmap('logo.png').scaled(500, 325)
         title_image.setPixmap(pixmap)
         layout.addWidget(title_image, alignment= Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
@@ -486,7 +502,9 @@ class HomePage(QWidget):
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }}
             QPushButton:hover {{
                 background-color: {BUTTON_HOVER}
@@ -522,11 +540,12 @@ class ResourcesPage(QWidget):
 
         title_label = QLabel("Resources")
         title_label.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {TEXT_COLOR};")
+        title_label.setStyleSheet(f"color: {TEXT_COLOR}; background: transparent")
         layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(10)
 
         sub_label = QLabel("Commonly Used Links:")
+        sub_label.setStyleSheet("background: transparent;")
         sub_label.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
         layout.addWidget(sub_label)
 
@@ -590,6 +609,7 @@ class ResourcesPage(QWidget):
         layout.addSpacing(20)
 
         sub_label2 = QLabel("Book a Study Room:")
+        sub_label2.setStyleSheet("background: transparent;")
         sub_label2.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
         layout.addWidget(sub_label2)
 
@@ -669,7 +689,7 @@ class ScheduleInputPage(QWidget):
         # Title
         title_label = QLabel("Class Schedule Input")
         title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {TEXT_COLOR};")
+        title_label.setStyleSheet(f"color: {TEXT_COLOR}; background: transparent")
         main_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         main_layout.addSpacing(10)
 
@@ -679,6 +699,7 @@ class ScheduleInputPage(QWidget):
 
         # Class Name
         lbl_class = QLabel("Class Name:")
+        lbl_class.setStyleSheet("background: transparent;")
         self.edit_class_name = QLineEdit()
         self.edit_class_name.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         form_layout.addWidget(lbl_class, 0, 0, alignment=Qt.AlignmentFlag.AlignRight)
@@ -686,6 +707,7 @@ class ScheduleInputPage(QWidget):
 
         # Location
         lbl_location = QLabel("Location:")
+        lbl_location.setStyleSheet("background: transparent;")
         self.edit_location = QLineEdit()
         self.edit_location.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         form_layout.addWidget(lbl_location, 1, 0, alignment=Qt.AlignmentFlag.AlignRight)
@@ -693,20 +715,24 @@ class ScheduleInputPage(QWidget):
 
         # Days
         lbl_days = QLabel("Days:")
+        lbl_days.setStyleSheet("background: transparent;")
         form_layout.addWidget(lbl_days, 2, 0, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         days_container = QWidget()
+        days_container.setStyleSheet("background: transparent;")
         days_hbox = QHBoxLayout(days_container)
         days_container.setLayout(days_hbox)
         form_layout.addWidget(days_container, 2, 1)
 
         for day in ["M", "T", "W", "Th", "F"]:
             cb = QCheckBox(day)
+            cb.setStyleSheet("background: transparent;")
             cb.stateChanged.connect(self.update_start_times)
             days_hbox.addWidget(cb)
             self.days_vars[day] = cb
 
         # Start Time
         lbl_start_time = QLabel("Start Time:")
+        lbl_start_time.setStyleSheet("background: transparent;")
         self.combo_start_time = QComboBox()
         self.combo_start_time.setStyleSheet('''
             QComboBox { background-color: #FFFFFF}
@@ -736,11 +762,12 @@ class ScheduleInputPage(QWidget):
 
         # Warning Label
         self.warning_label = QLabel("")
-        self.warning_label.setStyleSheet("color: red;")
+        self.warning_label.setStyleSheet("color: red; background: transparent")
         main_layout.addWidget(self.warning_label)
 
         # Class Display Area
         self.class_display_container = QWidget()
+        self.class_display_container.setStyleSheet("background: transparent;")
         self.class_display_layout = QVBoxLayout()
         self.class_display_container.setLayout(self.class_display_layout)
         main_layout.addWidget(self.class_display_container)
@@ -952,7 +979,7 @@ class UCSCEventsPage(QWidget):
 
         title = QLabel("📅 Upcoming UCSC Events")
         title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        title.setStyleSheet("color: white;")
+        title.setStyleSheet("color: black; background: transparent")
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self.scroll = QScrollArea()
@@ -1297,10 +1324,12 @@ class ForumPage(QWidget):
         self.setLayout(main_layout)
 
         title_label = QLabel("Class Forums")
+        title_label.setStyleSheet("background: transparent;")
         title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
         main_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         forum_label = QLabel("Select a Forum:")
+        forum_label.setStyleSheet("background: transparent;")
         main_layout.addWidget(forum_label)
 
         self.forum_selector = QComboBox()
@@ -1319,8 +1348,13 @@ class ForumPage(QWidget):
         create_button.clicked.connect(self.create_new_forum)
         create_button.setStyleSheet("""
             QPushButton {
-                background-color: #161a7d; color: white; border-radius: 6px;
-                padding: 8px 14px; border: 2px solid #000000;
+                background-color: #161a7d;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;   
             }
             QPushButton:hover { background-color: #0a0c47; }
         """)
@@ -1335,7 +1369,9 @@ class ForumPage(QWidget):
         self.scroll_area.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll_area, stretch=1)
 
-        main_layout.addWidget(QLabel("Write a message:"))
+        msg = QLabel("Write a message:")
+        msg.setStyleSheet("background: transparent;")
+        main_layout.addWidget(msg)
 
         self.post_text = QTextEdit()
         self.post_text.setFixedHeight(100)
@@ -1346,8 +1382,13 @@ class ForumPage(QWidget):
         post_btn.clicked.connect(self.handle_post)
         post_btn.setStyleSheet("""
             QPushButton {
-                background-color: #161a7d; color: white; border-radius: 6px;
-                padding: 8px 14px; border: 2px solid #000000;
+                background-color: #161a7d;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
             QPushButton:hover { background-color: #0a0c47; }
         """)
@@ -1357,8 +1398,13 @@ class ForumPage(QWidget):
         back_btn.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         back_btn.setStyleSheet("""
             QPushButton {
-                background-color: #28A745; color: white; border-radius: 6px;
-                padding: 8px 14px; border: 2px solid #000000;
+                background-color: #28A745;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+                font-family: 'Times New Roman';
+                font-size: 18px;
             }
             QPushButton:hover { background-color: #0D7024; }
         """)
@@ -1759,6 +1805,17 @@ def main():
     """)
 
     window = MainWindow()
+    window.setStyleSheet('''
+        QWidget {
+            background: qlineargradient(
+                x1: 0, y1: 0,
+                x2: 1, y2: 1,
+                stop: 0 #8fc1ff,
+                stop: 1 #163f73
+            );           
+        }
+    ''')
+
     window.show()
     sys.exit(app.exec())
 
