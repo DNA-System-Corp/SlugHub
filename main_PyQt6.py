@@ -882,22 +882,26 @@ class ScheduleInputPage(QWidget):
                         color: #000000;
                         border: 2px dashed #FFB000;
                         border-radius: 6px;
-                        padding: 10px;
-                        font-size: 14px;
+                        padding: 6px;
+                        font-size: 11px;
                     }
                     QLabel:hover {
                         background-color: #FFE8A1;
                     }
                 """)
+                label.setWordWrap(True)  # Enable wrapping
+                label.setFixedWidth(200)  # Smaller width
+                label.setMaximumHeight(80)  # Height constraint
+                label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             else:
                 label.setStyleSheet("""
                     QLabel {
                         background-color: #DDEEFF;
                         color: #000000;
-                        border: 1px solid #999;
+                        border: 2px solid #999;
                         border-radius: 6px;
-                        padding: 10px;
-                        font-size: 14px;
+                        padding: 6px;
+                        font-size: 11px;
                     }
                     QLabel:hover {
                         background-color: #c9def2;
