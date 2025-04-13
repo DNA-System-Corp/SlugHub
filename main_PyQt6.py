@@ -153,6 +153,7 @@ class LoginPage(QWidget):
         self.password_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_edit.setFixedWidth(400)
+        self.password_edit.returnPressed.connect(self.login_user)
         layout.addWidget(self.password_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Message label
