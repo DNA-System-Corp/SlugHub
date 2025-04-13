@@ -25,7 +25,7 @@ from PyQt6.QtGui import QGuiApplication, QDesktopServices, QPixmap
 from eventscraper import scrape_ucsc_events
 
 from PyQt6.QtWebEngineCore import QWebEnginePage
-
+from PyQt6.QtCore import QTimer
 import geocoder
 
 
@@ -1284,8 +1284,6 @@ class SelectClassPage(QWidget):
         forum_page.load_specific_class(full_code)
 
 
-
-
 class ForumPage(QWidget):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
@@ -1302,8 +1300,7 @@ class ForumPage(QWidget):
         title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
         main_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        # Dropdown to choose an existing forum
-        forum_label = QLabel("Select an Existing Forum:")
+        forum_label = QLabel("Select a Forum:")
         main_layout.addWidget(forum_label)
 
         self.forum_selector = QComboBox()
@@ -1311,31 +1308,26 @@ class ForumPage(QWidget):
         self.forum_selector.currentTextChanged.connect(self.on_forum_changed)
         main_layout.addWidget(self.forum_selector)
 
-        # Input + button to create a new forum
+        # Create new forum UI
         new_forum_layout = QHBoxLayout()
         self.new_forum_input = QLineEdit()
         self.new_forum_input.setPlaceholderText("Enter new forum name")
         self.new_forum_input.setStyleSheet("QLineEdit { background-color: #FFFFFF }")
         new_forum_layout.addWidget(self.new_forum_input)
 
-        self.create_forum_button = QPushButton("➕ Create Forum")
-        self.create_forum_button.setStyleSheet("""
+        create_button = QPushButton("➕ Create Forum")
+        create_button.clicked.connect(self.create_new_forum)
+        create_button.setStyleSheet("""
             QPushButton {
-                background-color: #161a7d;
-                color: white;
-                border-radius: 6px;
-                padding: 8px 14px;
-                border: 2px solid #000000;
+                background-color: #161a7d; color: white; border-radius: 6px;
+                padding: 8px 14px; border: 2px solid #000000;
             }
-            QPushButton:hover {
-                background-color: #0a0c47;
-            }
+            QPushButton:hover { background-color: #0a0c47; }
         """)
-        self.create_forum_button.clicked.connect(self.create_new_forum)
-        new_forum_layout.addWidget(self.create_forum_button)
+        new_forum_layout.addWidget(create_button)
         main_layout.addLayout(new_forum_layout)
 
-        # Scrollable area to show posts
+        # Scroll area for posts
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_content = QWidget()
@@ -1343,49 +1335,42 @@ class ForumPage(QWidget):
         self.scroll_area.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll_area, stretch=1)
 
-        # Input area for new post
-        post_label = QLabel("Write a message:")
-        main_layout.addWidget(post_label)
+        main_layout.addWidget(QLabel("Write a message:"))
 
         self.post_text = QTextEdit()
-        self.post_text.setStyleSheet("QTextEdit { background-color: #FFFFFF }")
         self.post_text.setFixedHeight(100)
+        self.post_text.setStyleSheet("QTextEdit { background-color: #FFFFFF }")
         main_layout.addWidget(self.post_text)
 
-        post_button = QPushButton("Post")
-        post_button.setStyleSheet("""
+        post_btn = QPushButton("Post")
+        post_btn.clicked.connect(self.handle_post)
+        post_btn.setStyleSheet("""
             QPushButton {
-                background-color: #161a7d;
-                color: white;
-                border-radius: 6px;
-                padding: 8px 14px;
-                border: 2px solid #000000;
+                background-color: #161a7d; color: white; border-radius: 6px;
+                padding: 8px 14px; border: 2px solid #000000;
             }
-            QPushButton:hover {
-                background-color: #0a0c47;
-            }
+            QPushButton:hover { background-color: #0a0c47; }
         """)
-        post_button.clicked.connect(self.handle_post)
-        main_layout.addWidget(post_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        main_layout.addWidget(post_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        # Back button
-        btn_back = QPushButton("⬅ Back to Home")
-        btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
-        btn_back.setStyleSheet("""
+        back_btn = QPushButton("⬅ Back to Home")
+        back_btn.clicked.connect(lambda: self.main_window.show_page("HomePage"))
+        back_btn.setStyleSheet("""
             QPushButton {
-                background-color: #28A745;
-                color: white;
-                border-radius: 6px;
-                padding: 8px 14px;
-                border: 2px solid #000000;
+                background-color: #28A745; color: white; border-radius: 6px;
+                padding: 8px 14px; border: 2px solid #000000;
             }
-            QPushButton:hover {
-                background-color: #0D7024;
-            }
+            QPushButton:hover { background-color: #0D7024; }
         """)
-        main_layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
+        main_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         main_layout.addStretch()
+
+        # Setup polling timer for real-time updates
+        self.latest_timestamp = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.poll_for_new_posts)
+        self.timer.start(5000)  # every 5 seconds
 
         self.load_forum_list()
 
@@ -1397,8 +1382,8 @@ class ForumPage(QWidget):
             self.current_forum_name = self.forum_selector_items[0]
             self.load_forum_posts()
 
-    def on_forum_changed(self, new_forum):
-        self.current_forum_name = new_forum
+    def on_forum_changed(self, forum):
+        self.current_forum_name = forum
         self.load_forum_posts()
 
     def create_new_forum(self):
@@ -1407,35 +1392,63 @@ class ForumPage(QWidget):
             QMessageBox.warning(self, "Error", "Forum name cannot be empty.")
             return
         if new_name in self.forum_selector_items:
-            QMessageBox.information(self, "Notice", "Forum already exists.")
+            QMessageBox.information(self, "Info", "Forum already exists.")
             return
         self.forum_selector.addItem(new_name)
         self.forum_selector.setCurrentText(new_name)
-        self.new_forum_input.clear()
         self.forum_selector_items.append(new_name)
+        self.new_forum_input.clear()
 
     def load_forum_posts(self):
-        for i in reversed(range(self.scroll_layout.count())):
-            widget = self.scroll_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
-
-        posts_cursor = forum_collection.find({"forum_name": self.current_forum_name}).sort("timestamp", 1)
-        for doc in posts_cursor:
+        self.clear_posts()
+        posts = forum_collection.find({"forum_name": self.current_forum_name}).sort("timestamp", 1)
+        for doc in posts:
             self.add_post_widget(doc)
-
+            self.latest_timestamp = doc.get("timestamp", self.latest_timestamp)
         QApplication.processEvents()
         self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
-        self.scroll_layout.addStretch()
+
+    def poll_for_new_posts(self):
+        if not self.current_forum_name or not self.latest_timestamp:
+            return
+        new_posts = forum_collection.find({
+            "forum_name": self.current_forum_name,
+            "timestamp": {"$gt": self.latest_timestamp}
+        }).sort("timestamp", 1)
+        new_found = False
+        for doc in new_posts:
+            self.add_post_widget(doc)
+            self.latest_timestamp = doc["timestamp"]
+            new_found = True
+        if new_found:
+            QApplication.processEvents()
+            self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
+
+    def handle_post(self):
+        global current_user
+        if not current_user:
+            QMessageBox.warning(self, "Not logged in", "Please log in to post.")
+            return
+        msg = self.post_text.toPlainText().strip()
+        if not msg:
+            return
+        post = {
+            "forum_name": self.current_forum_name,
+            "user": current_user,
+            "message": msg,
+            "timestamp": datetime.now()
+        }
+        forum_collection.insert_one(post)
+        self.post_text.clear()
+        self.load_forum_posts()
 
     def add_post_widget(self, doc):
-        post_user = doc.get("user", "Unknown")
-        post_text = doc.get("message", "")
-        post_time = doc.get("timestamp")
-        time_str = post_time.strftime("%b %d %Y, %I:%M %p") if post_time else ""
-
-        post_label = QLabel(f"<b>{post_user}</b> @ {time_str}<br/><br/>{post_text}")
-        post_label.setStyleSheet("""
+        user = doc.get("user", "Unknown")
+        msg = doc.get("message", "")
+        ts = doc.get("timestamp")
+        time_str = ts.strftime("%b %d %Y, %I:%M %p") if ts else ""
+        label = QLabel(f"<b>{user}</b> @ {time_str}<br/><br/>{msg}")
+        label.setStyleSheet("""
             QLabel {
                 background-color: #DDEEFF;
                 border: 1px solid #999;
@@ -1443,29 +1456,14 @@ class ForumPage(QWidget):
                 padding: 10px;
             }
         """)
-        post_label.setWordWrap(True)
-        self.scroll_layout.addWidget(post_label)
+        label.setWordWrap(True)
+        self.scroll_layout.addWidget(label)
 
-    def handle_post(self):
-        global current_user
-        if not current_user:
-            QMessageBox.warning(self, "Not logged in", "You must be logged in to post.")
-            return
-
-        msg = self.post_text.toPlainText().strip()
-        if not msg:
-            return
-
-        forum_collection.insert_one({
-            "forum_name": self.current_forum_name,
-            "user": current_user,
-            "message": msg,
-            "timestamp": datetime.now()
-        })
-
-        self.post_text.clear()
-        self.load_forum_posts()
-
+    def clear_posts(self):
+        for i in reversed(range(self.scroll_layout.count())):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
 
 
 
