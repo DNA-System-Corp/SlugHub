@@ -4,7 +4,7 @@ import sys
 import os
 import bcrypt
 import uuid
-
+from PyQt6.QtWidgets import QScrollArea, QMessageBox
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtGui import QGuiApplication, QDesktopServices, QPixmap
+from eventscraper import scrape_ucsc_events
 
 
 
@@ -398,6 +399,17 @@ class HomePage(QWidget):
         btn_map.setMinimumWidth(550)
         layout.addWidget(btn_map, alignment=Qt.AlignmentFlag.AlignCenter)
         
+        btn_events = QPushButton("📅 UCSC Events")
+        btn_events.clicked.connect(lambda: self.main_window.show_page("UCSCEventsPage"))
+        btn_events.setStyleSheet("""
+            background-color: #FFA500;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 14px;
+            border: 2px solid #000000;
+        """)
+        layout.addWidget(btn_events)
+
         layout.addStretch()
         logout_container = QHBoxLayout()
         logout_container.addStretch()
@@ -801,6 +813,181 @@ DAY_MAP = {
     # ignoring Sat(5)/Sun(6)
 }
 
+
+
+
+class UCSCEventsPage(QWidget):
+    def __init__(self, parent=None, main_window=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        set_widget_bg(self)
+
+        self.pinned_events = []
+        self.hidden_event_ids = set()
+        self.remaining_events = []
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        title = QLabel("📅 Upcoming UCSC Events")
+        title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
+        title.setStyleSheet("color: white;")
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        layout.addWidget(self.scroll)
+
+        self.content = QWidget()
+        self.scroll_layout = QVBoxLayout(self.content)
+        self.scroll.setWidget(self.content)
+
+        # Refresh button
+        btn_refresh = QPushButton("🔄 Refresh Events")
+        btn_refresh.clicked.connect(self.refresh_events)
+        btn_refresh.setStyleSheet("""
+            background-color: #5BB2F7;
+            color: white;
+            border-radius: 6px;
+            padding: 6px 14px;
+        """)
+        layout.addWidget(btn_refresh, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Back button
+        btn_back = QPushButton("⬅ Back to Home")
+        btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
+        btn_back.setStyleSheet("""
+            background-color: #28A745;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 14px;
+        """)
+        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        layout.addStretch()
+
+        self.refresh_events()
+
+    def refresh_events(self):
+        self.clear_event_layout()
+
+        all_events = scrape_ucsc_events()
+        self.remaining_events = [e for e in all_events if e not in self.pinned_events]
+
+        events_to_show = self.pinned_events + self.get_next_events(15 - len(self.pinned_events))
+
+        for event in events_to_show:
+            self.display_event_card(event)
+
+        self.scroll_layout.addStretch()
+
+    def get_next_events(self, count):
+        shown = []
+        while self.remaining_events and len(shown) < count:
+            next_event = self.remaining_events.pop(0)
+            if next_event["title"] not in self.hidden_event_ids:
+                shown.append(next_event)
+        return shown
+
+    def display_event_card(self, event):
+        title = QLabel(f"🟡 {event['title']}")
+        date = QLabel(f"📆 {event['date']}")
+        location = QLabel(f"📍 {event['location']}")
+        price = QLabel(f"💵 {event['price'] if event['price'] else 'FREE'}")
+
+        for label in [title, date, location, price]:
+            label.setStyleSheet("color: #FFFFFF; font-size: 14px;")
+
+        # Pin button (smaller with hover)
+        btn_pin = QPushButton("📌")
+        btn_pin.setFixedSize(30, 30)
+        btn_pin.setStyleSheet("""
+            QPushButton {
+                background-color: #FFD700;
+                color: black;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #E6C200;
+            }
+        """)
+        btn_pin.clicked.connect(lambda _, e=event: self.pin_event(e))
+
+        # Hide button (smaller with hover + fast remove)
+        btn_hide = QPushButton("❌")
+        btn_hide.setFixedSize(30, 30)
+        btn_hide.setStyleSheet("""
+            QPushButton {
+                background-color: #FF6666;
+                color: white;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #CC4444;
+            }
+        """)
+        btn_hide.clicked.connect(lambda _, e=event: self.quick_hide_event(e))
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_pin)
+        btn_layout.addWidget(btn_hide)
+
+        card_layout = QVBoxLayout()
+        card_layout.addWidget(title)
+        card_layout.addWidget(date)
+        card_layout.addWidget(location)
+        card_layout.addWidget(price)
+        card_layout.addLayout(btn_layout)
+        card_layout.setContentsMargins(12, 12, 12, 12)
+
+        frame = QWidget()
+        frame.setLayout(card_layout)
+        frame.setStyleSheet("""
+            QWidget {
+                background-color: #3A4F7A;
+                border-radius: 10px;
+                border: 1px solid #cccccc;
+            }
+        """)
+
+        # Store the frame so we can remove it instantly
+        frame.event_data = event
+        self.scroll_layout.addWidget(frame)
+
+    def clear_event_layout(self):
+        for i in reversed(range(self.scroll_layout.count())):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+    def pin_event(self, event):
+        if not any(e["title"] == event["title"] for e in self.pinned_events):
+            self.pinned_events.append(event)
+        self.refresh_events()
+
+    def quick_hide_event(self, event):
+        self.hidden_event_ids.add(event["title"])
+
+        # Remove widget instantly from layout
+        for i in range(self.scroll_layout.count()):
+            item = self.scroll_layout.itemAt(i)
+            widget = item.widget()
+            if hasattr(widget, 'event_data') and widget.event_data["title"] == event["title"]:
+                widget.setParent(None)
+                break
+
+        # Replace with next event, if available
+        next_events = self.get_next_events(1)
+        if next_events:
+            self.display_event_card(next_events[0])
+
+
+
+
+
 class MapBridge(QObject):
     """
     Bridge for the web channel. JavaScript calls window.bridge.mapReady()
@@ -1008,7 +1195,8 @@ class MainWindow(QMainWindow):
             ("HomePage", HomePage),
             ("ResourcesPage", ResourcesPage),
             ("ScheduleInputPage", ScheduleInputPage),
-            ("MapPage", MapPage)
+            ("MapPage", MapPage),
+            ("UCSCEventsPage",UCSCEventsPage)
         ]
 
         for name, PageClass in pages:
