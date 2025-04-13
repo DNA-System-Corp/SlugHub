@@ -1,0 +1,8 @@
+PyQt6
+PyQt6-WebEngine
+bcrypt
+python-dotenv
+requests
+beautifulsoup4
+pymongo
+geocoder
