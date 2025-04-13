@@ -61,7 +61,7 @@ def store_classes_in_db():
     """Scrape the catalog, then store the entire list of courses in a single MongoDB document."""
     classes = fetch_all_ucsc_classes()
     if not classes:
-        print("No classes found or scraping failed.")
+        #print("No classes found or scraping failed.")
         return
 
     # We'll store them all in one doc with a known _id, e.g. "ucsc_course_list"
@@ -1548,6 +1548,8 @@ class MapPage(QWidget):
         self.map_is_ready = False
         self.pending_destination = None
         self.current_travel_mode = "DRIVING"
+        self.upcoming_classes = []         # Holds all upcoming classes
+        self.current_class_index = 0       # Tracks which class we're currently showing
 
 
         # Main layout
@@ -1559,26 +1561,107 @@ class MapPage(QWidget):
         #
         mode_layout = QHBoxLayout()
 
-        btn_drive = QPushButton("Drive")
+#
+# 1) Travel Mode Buttons (2x2 Grid)
+#
+        mode_grid = QGridLayout()
+
+        button_style = """
+            QPushButton {
+                background-color: #0d6efd;
+                color: white;
+                border-radius: 4px;
+                padding: 4px;
+                font-size: 10px;
+                border: 2px solid #000000;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #0a0c47;
+            }
+        """
+
+        btn_drive = QPushButton("🚗 Drive")
         btn_drive.clicked.connect(lambda: self.set_travel_mode("DRIVING"))
-        mode_layout.addWidget(btn_drive)
+        btn_drive.setStyleSheet(button_style)
+        mode_grid.addWidget(btn_drive, 0, 0)
 
-        btn_walk = QPushButton("Walk")
+        btn_walk = QPushButton("🚶 Walk")
         btn_walk.clicked.connect(lambda: self.set_travel_mode("WALKING"))
-        mode_layout.addWidget(btn_walk)
+        btn_walk.setStyleSheet(button_style)
+        mode_grid.addWidget(btn_walk, 0, 1)
 
-        btn_bike = QPushButton("Bike")
+        btn_bike = QPushButton("🚴 Bike")
         btn_bike.clicked.connect(lambda: self.set_travel_mode("BICYCLING"))
-        mode_layout.addWidget(btn_bike)
+        btn_bike.setStyleSheet(button_style)
+        mode_grid.addWidget(btn_bike, 1, 0)
 
-        btn_transit = QPushButton("Transit")
+        btn_transit = QPushButton("🚌 Transit")
         btn_transit.clicked.connect(lambda: self.set_travel_mode("TRANSIT"))
-        mode_layout.addWidget(btn_transit)
+        btn_transit.setStyleSheet(button_style)
+        mode_grid.addWidget(btn_transit, 1, 1)
 
+        self.layout.addLayout(mode_grid)
         self.layout.addLayout(mode_layout)
 
         #
-        # 2) "Back to Home" Button
+        # 2) Navigation Buttons: Route to Next/Previous Class
+        #
+        nav_layout = QHBoxLayout()
+
+        btn_prev = QPushButton("🕘 Previous Class")
+        btn_prev.clicked.connect(self.route_to_previous_class)
+        btn_prev.setStyleSheet("""
+            QPushButton {
+                background-color: #FFC107;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #e0a800;
+            }
+        """)
+        nav_layout.addWidget(btn_prev)
+
+        btn_next = QPushButton("🔃")
+        btn_next.clicked.connect(self.route_to_next_class)
+        btn_next.setStyleSheet("""
+            QPushButton {
+                background-color: #FFC107;   /* Amber */
+                color: black;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #e0a800;
+            }
+        """)
+        nav_layout.addWidget(btn_next)
+
+
+        self.layout.addLayout(nav_layout)
+
+        btn_later = QPushButton("Next Class ➡")
+        btn_later.clicked.connect(self.route_to_later_class)
+        btn_later.setStyleSheet("""
+            QPushButton {
+                background-color: #FFC107;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #e0a800;
+            }
+        """)
+        nav_layout.addWidget(btn_later)
+
+        #
+        # 3) "Back to Home" Button
         #
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
@@ -1588,6 +1671,7 @@ class MapPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
+            border: 2px solid #000000;
             }
             QPushButton:hover{
                 background-color: #0D7024
@@ -1657,6 +1741,7 @@ class MapPage(QWidget):
     def route_to_next_class(self):
         """
         Looks up the user's next upcoming class from the DB and calls route_to().
+        Stores all upcoming classes in order for later navigation.
         """
         global current_user
         if not current_user:
@@ -1679,28 +1764,50 @@ class MapPage(QWidget):
             check_day = (weekday_index + offset) % 7
             day_letter = DAY_MAP.get(check_day)
             if not day_letter:
-                # skip Sat/Sun or anything out of DAY_MAP
-                continue
+                continue  # skip weekends
 
             for cls in schedule:
                 if day_letter in cls["days"]:
-                    # If it's the same day, skip classes that already started
+                    # If it's today, only include classes that haven't started yet
                     if offset == 0 and cls["start_time"] <= now_str:
                         continue
                     upcoming_classes.append((offset, cls))
 
-            # If we found any classes for this day, no need to keep looking further days
-            if upcoming_classes:
-                break
-
         if not upcoming_classes:
             print("No upcoming classes found in the next week.")
+            QMessageBox.information(self, "No Classes", "You have no upcoming classes.")
             return
 
-        # Sort by day-offset first, then start time
-        next_class = sorted(upcoming_classes, key=lambda x: (x[0], x[1]["start_time"]))[0][1]
+        # Store sorted list and start at index 0
+        self.upcoming_classes = sorted(upcoming_classes, key=lambda x: (x[0], x[1]["start_time"]))
+        self.current_class_index = 0
+
+        next_class = self.upcoming_classes[self.current_class_index][1]
         print(f"Next class: {next_class['name']} at {next_class['start_time']} → {next_class['location']}")
         self.route_to(next_class["location"])
+
+    def route_to_later_class(self):
+        if not self.upcoming_classes or self.current_class_index >= len(self.upcoming_classes) - 1:
+            print("No further classes to show.")
+            QMessageBox.information(self, "Done", "No more classes scheduled after this.")
+            return
+
+        self.current_class_index += 1
+        later_class = self.upcoming_classes[self.current_class_index][1]
+        print(f"Later class: {later_class['name']} at {later_class['start_time']} → {later_class['location']}")
+        self.route_to(later_class["location"])
+
+    def route_to_previous_class(self):
+        if not self.upcoming_classes or self.current_class_index <= 0:
+            print("No earlier class to go back to.")
+            QMessageBox.information(self, "Start", "You're already at the first upcoming class.")
+            return
+
+        self.current_class_index -= 1
+        previous_class = self.upcoming_classes[self.current_class_index][1]
+        print(f"Previous class: {previous_class['name']} at {previous_class['start_time']} → {previous_class['location']}")
+        self.route_to(previous_class["location"])
+
 
 class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, parent=None):
