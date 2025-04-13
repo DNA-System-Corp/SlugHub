@@ -136,22 +136,24 @@ class LoginPage(QWidget):
         layout.addWidget(title_image, alignment= Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
         # Username
-        layout.addWidget(QLabel("Username:"))
+        layout.addWidget(QLabel("Username:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.username_edit = QLineEdit()
         self.username_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
-        layout.addWidget(self.username_edit)
+        self.username_edit.setFixedWidth(400)
+        layout.addWidget(self.username_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Password
-        layout.addWidget(QLabel("Password:"))
+        layout.addWidget(QLabel("Password:"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.password_edit = QLineEdit()
         self.password_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        layout.addWidget(self.password_edit)
+        self.password_edit.setFixedWidth(400)
+        layout.addWidget(self.password_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Message label
         self.message_label = QLabel("")
         self.message_label.setStyleSheet("color: red;")
-        layout.addWidget(self.message_label)
+        layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Buttons
         btn_login = QPushButton("🔓 Login")
@@ -168,7 +170,8 @@ class LoginPage(QWidget):
                 background-color: #0D7024
             }}
         """)
-        layout.addWidget(btn_login)
+        btn_login.setFixedWidth(100)
+        layout.addWidget(btn_login, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_register = QPushButton("📝 Create New Account")
         btn_register.clicked.connect(lambda: self.main_window.show_page("RegisterPage"))
@@ -184,7 +187,8 @@ class LoginPage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        layout.addWidget(btn_register)
+        btn_register.setFixedWidth(100)
+        layout.addWidget(btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
 
         label = QLabel(self)
         pixmap = QPixmap('Sluggy.png')
@@ -339,7 +343,8 @@ class HomePage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        layout.addWidget(btn_schedule)
+        btn_schedule.setFixedHeight(350)
+        layout.addWidget(btn_schedule, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_resources = QPushButton("📚 Resources")
         btn_resources.clicked.connect(lambda: self.main_window.show_page("ResourcesPage"))
@@ -355,7 +360,8 @@ class HomePage(QWidget):
                 background-color: {BACK_HOVER_BG}
             }}
         """)
-        layout.addWidget(btn_resources)
+        btn_resources.setFixedWidth(350)
+        layout.addWidget(btn_resources, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_logout = QPushButton("🔐 Logout")
         btn_logout.clicked.connect(self.logout_user)
@@ -389,7 +395,8 @@ class HomePage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        layout.addWidget(btn_map)
+        btn_map.setMinimumWidth(550)
+        layout.addWidget(btn_map, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
         logout_container = QHBoxLayout()
