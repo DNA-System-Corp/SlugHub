@@ -1510,12 +1510,6 @@ class ForumPage(QWidget):
                 widget.setParent(None)
 
 
-
-
-
-
-
-
 class MapBridge(QObject):
     def __init__(self, map_page):
         super().__init__()
@@ -1560,7 +1554,7 @@ class MapPage(QWidget):
 #
         mode_grid = QGridLayout()
 
-        button_style = """
+        travel_button_style = """
             QPushButton {
                 background-color: #0d6efd;
                 color: white;
@@ -1577,22 +1571,22 @@ class MapPage(QWidget):
 
         btn_drive = QPushButton("🚗 Drive")
         btn_drive.clicked.connect(lambda: self.set_travel_mode("DRIVING"))
-        btn_drive.setStyleSheet(button_style)
+        btn_drive.setStyleSheet(travel_button_style)
         mode_grid.addWidget(btn_drive, 0, 0)
 
         btn_walk = QPushButton("🚶 Walk")
         btn_walk.clicked.connect(lambda: self.set_travel_mode("WALKING"))
-        btn_walk.setStyleSheet(button_style)
+        btn_walk.setStyleSheet(travel_button_style)
         mode_grid.addWidget(btn_walk, 0, 1)
 
         btn_bike = QPushButton("🚴 Bike")
         btn_bike.clicked.connect(lambda: self.set_travel_mode("BICYCLING"))
-        btn_bike.setStyleSheet(button_style)
+        btn_bike.setStyleSheet(travel_button_style)
         mode_grid.addWidget(btn_bike, 1, 0)
 
         btn_transit = QPushButton("🚌 Transit")
         btn_transit.clicked.connect(lambda: self.set_travel_mode("TRANSIT"))
-        btn_transit.setStyleSheet(button_style)
+        btn_transit.setStyleSheet(travel_button_style)
         mode_grid.addWidget(btn_transit, 1, 1)
 
         self.layout.addLayout(mode_grid)
@@ -1601,38 +1595,30 @@ class MapPage(QWidget):
         #
         # 2) Navigation Buttons: Route to Next/Previous Class
         #
-        nav_layout = QHBoxLayout()
 
-        btn_prev = QPushButton("🕘 Previous Class")
-        btn_prev.clicked.connect(self.route_to_previous_class)
-        btn_prev.setStyleSheet("""
+        nav_btn_style = ("""
             QPushButton {
                 background-color: #FFC107;
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
-            }
+                }
             QPushButton:hover {
                 background-color: #e0a800;
             }
         """)
+
+        nav_layout = QHBoxLayout()
+
+        btn_prev = QPushButton("🕘 Previous Class")
+        btn_prev.clicked.connect(self.route_to_previous_class)
+        btn_prev.setStyleSheet(nav_btn_style)
         nav_layout.addWidget(btn_prev)
 
         btn_next = QPushButton("🔃")
         btn_next.clicked.connect(self.route_to_next_class)
-        btn_next.setStyleSheet("""
-            QPushButton {
-                background-color: #FFC107;   /* Amber */
-                color: black;
-                border-radius: 6px;
-                padding: 8px 14px;
-                border: 2px solid #000000;
-            }
-            QPushButton:hover {
-                background-color: #e0a800;
-            }
-        """)
+        btn_next.setStyleSheet(nav_btn_style)
         nav_layout.addWidget(btn_next)
 
 
@@ -1640,18 +1626,7 @@ class MapPage(QWidget):
 
         btn_later = QPushButton("Next Class ➡")
         btn_later.clicked.connect(self.route_to_later_class)
-        btn_later.setStyleSheet("""
-            QPushButton {
-                background-color: #FFC107;
-                color: white;
-                border-radius: 6px;
-                padding: 8px 14px;
-                border: 2px solid #000000;
-            }
-            QPushButton:hover {
-                background-color: #e0a800;
-            }
-        """)
+        btn_later.setStyleSheet(nav_btn_style)
         nav_layout.addWidget(btn_later)
 
         #
@@ -1781,7 +1756,7 @@ class MapPage(QWidget):
         self.route_to(next_class["location"])
 
     def route_to_later_class(self):
-        if not self.upcoming_classes or self.current_class_index >= len(self.upcoming_classes) - 1:
+        if not self.upcoming_classes or self.current_class_index >= len(self.upcoming_classes) - 2:
             print("No further classes to show.")
             QMessageBox.information(self, "Done", "No more classes scheduled after this.")
             return
