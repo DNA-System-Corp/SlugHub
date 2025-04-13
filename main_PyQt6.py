@@ -857,6 +857,7 @@ class UCSCEventsPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 6px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_refresh, alignment=Qt.AlignmentFlag.AlignHCenter)
 
