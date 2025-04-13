@@ -1161,19 +1161,13 @@ class UCSCEventsPage(QWidget):
                 widget.setParent(None)
 
     def pin_event(self, event):
+    # Check if it's already pinned → then unpin
         if any(e["title"] == event["title"] for e in self.pinned_events):
-            return
+            self.pinned_events = [e for e in self.pinned_events if e["title"] != event["title"]]
+        else:
+            self.pinned_events.append(event)
 
-        self.pinned_events.append(event)
-
-        # Remove widget from current spot
-        for i in range(self.scroll_layout.count()):
-            widget = self.scroll_layout.itemAt(i).widget()
-            if hasattr(widget, 'event_data') and widget.event_data["title"] == event["title"]:
-                widget.setParent(None)
-                break
-
-        # Redraw pinned event at the top
+        # Rebuild the layout
         self.clear_event_layout()
         events_to_show = self.pinned_events + self.get_next_events(15 - len(self.pinned_events))
         for ev in events_to_show:
