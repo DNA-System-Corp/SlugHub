@@ -10,6 +10,7 @@
         padding: 0;
       }
     </style>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
   </head>
   <body>
     <div id="map"></div>
@@ -20,12 +21,22 @@
       let directionsRenderer;
       let userLocation = null;
       let mapReady = false;
+      let webChannelReady = false;
       let currentTravelMode = "DRIVING";
       let pendingDestination = null;
 
-      function initMap() {
+      function notifyIfFullyReady() {
+        if (mapReady && userLocation && webChannelReady && window.bridge?.mapReady) {
+          console.log("🧠 All systems ready — notifying Python.");
+          window.bridge.mapReady();
+        }
+      }
+
+      window.initMap = function () {
+        console.log("🗺️ initMap started");
+
         map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 36.9914, lng: -122.0609 }, // UCSC campus fallback
+          center: { lat: 36.9914, lng: -122.0609 },
           zoom: 14
         });
 
@@ -33,36 +44,36 @@
         directionsRenderer = new google.maps.DirectionsRenderer();
         directionsRenderer.setMap(map);
 
-        // Try to get user's location
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              userLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              };
-              console.log("✅ Location acquired.");
+        // Setup WebChannel
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+          window.bridge = channel.objects.bridge;
+          webChannelReady = true;
+          console.log("🔌 WebChannel ready");
+
+          // ASYNC: get user location from Python
+          window.bridge.getUserLocation().then((coords) => {
+            if (coords && coords.lat && coords.lng) {
+              userLocation = { lat: coords.lat, lng: coords.lng };
+              console.log("📍 Location from Python:", userLocation);
+              notifyIfFullyReady();
+
               if (pendingDestination) {
-                createRoute(pendingDestination);
+                const dest = pendingDestination;
+                pendingDestination = null;
+                console.log("🔁 Retrying deferred route to:", dest);
+                createRoute(dest);
               }
-            },
-            () => {
-              console.warn("⚠️ Geolocation failed. Using fallback.");
-              userLocation = { lat: 36.9914, lng: -122.0609 };
-              if (pendingDestination) {
-                createRoute(pendingDestination);
-              }
+            } else {
+              console.warn("⚠️ getUserLocation() returned invalid data");
             }
-          );
-        } else {
-          userLocation = { lat: 36.9914, lng: -122.0609 };
-        }
+          }).catch((err) => {
+            console.error("❌ Failed to get location from Python:", err);
+          });
+        });
 
         mapReady = true;
-        if (window.bridge && window.bridge.mapReady) {
-          window.bridge.mapReady();
-        }
-      }
+        console.log("✅ Map object initialized");
+      };
 
       function setTravelMode(mode) {
         if (["DRIVING", "WALKING", "BICYCLING", "TRANSIT"].includes(mode)) {
@@ -73,9 +84,12 @@
 
       function createRoute(destination) {
         if (!mapReady || !userLocation) {
+          console.warn("⚠️ Not ready, deferring route to:", destination);
           pendingDestination = destination;
           return;
         }
+
+        console.log("📍 Routing from:", userLocation, "→", destination);
 
         const request = {
           origin: userLocation,
@@ -92,16 +106,11 @@
           }
         });
       }
-
-      // Setup QWebChannel for Python ↔ JS bridge
-      new QWebChannel(qt.webChannelTransport, function(channel) {
-        window.bridge = channel.objects.bridge;
-      });
     </script>
 
     <script
       src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"
-      async defer loading="async">
+      async defer>
     </script>
   </body>
 </html>
