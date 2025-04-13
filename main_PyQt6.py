@@ -305,7 +305,9 @@ class RegisterPage(QWidget):
 
         # Password validation feedback
         self.label_length = QLabel("❌ Minimum 8 characters")
+        self.label_length.setStyleSheet("background: transparent;")
         self.label_digit = QLabel("❌ At least 1 digit")
+        self.label_digit.setStyleSheet("background: transparent;")
         layout.addWidget(self.label_length, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label_digit, alignment=Qt.AlignmentFlag.AlignCenter)
 
