@@ -1565,19 +1565,20 @@ class MapPage(QWidget):
 #
         mode_grid = QGridLayout()
 
-        travel_button_style = """
-            QPushButton {
-                background-color: #0d6efd;
+        travel_button_style = f"""
+            QPushButton {{
+                background-color: {BUTTON_BG};
                 color: white;
                 border-radius: 4px;
                 padding: 4px;
-                font-size: 10px;
+                font-size: 18px;
                 border: 2px solid #000000;
                 min-width: 80px;
-            }
-            QPushButton:hover {
+                font-family: "Times New Roman";
+            }}
+            QPushButton:hover {{
                 background-color: #0a0c47;
-            }
+            }}
         """
 
         btn_drive = QPushButton("🚗 Drive")
@@ -1610,10 +1611,12 @@ class MapPage(QWidget):
         nav_btn_style = ("""
             QPushButton {
                 background-color: #FFC107;
-                color: white;
+                color: black;
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: "Times New Roman";
+                font-size: 18px;
                 }
             QPushButton:hover {
                 background-color: #e0a800;
@@ -1677,6 +1680,8 @@ class MapPage(QWidget):
                 border-radius: 6px;
                 padding: 8px 14px;
                 border: 2px solid #000000;
+                font-family: "Times New Roman";
+                font-size: 18px;
             }
             QPushButton:hover{
                 background-color: #0D7024;
