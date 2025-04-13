@@ -130,11 +130,10 @@ class LoginPage(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        title_label = QLabel("Welcome to SlugHub")
-        title_label.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {TEXT_COLOR};")
-        layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addSpacing(20)
+        title_image = QLabel(self)
+        pixmap = QPixmap('logo.png').scaled(500, 325)
+        title_image.setPixmap(pixmap)
+        layout.addWidget(title_image, alignment= Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
         # Username
         layout.addWidget(QLabel("Username:"))
@@ -259,7 +258,7 @@ class RegisterPage(QWidget):
         btn_register = QPushButton("✅ Register")
         btn_register.clicked.connect(self.register_user)
         btn_register.setStyleSheet(f"""
-            QPushButton: {{
+            QPushButton {{
                 background-color: {BUTTON_BG};   /* Bootstrap green */
                 color: white;
                 border-radius: 6px;
@@ -274,8 +273,8 @@ class RegisterPage(QWidget):
 
         btn_back = QPushButton("⬅ Back to Login")
         btn_back.clicked.connect(lambda: self.main_window.show_page("LoginPage"))
-        btn_back.setStyleSheet( """
-            QPushButton: {{
+        btn_back.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #28A745;   /* Bootstrap green */
                 color: white;
                 border-radius: 6px;
@@ -321,11 +320,10 @@ class HomePage(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        title_label = QLabel("Welcome to SlugHub")
-        title_label.setFont(QFont("Helvetica", 22, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {TEXT_COLOR};")
-        layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addSpacing(20)
+        title_image = QLabel(self)
+        pixmap = QPixmap('logo.png').scaled(500, 325)
+        title_image.setPixmap(pixmap)
+        layout.addWidget(title_image, alignment= Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
         btn_schedule = QPushButton("🗓️ Class Schedule")
         btn_schedule.clicked.connect(lambda: self.main_window.show_page("ScheduleInputPage"))
