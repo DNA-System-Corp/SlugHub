@@ -400,19 +400,25 @@ class HomePage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        btn_map.setMinimumWidth(550)
+        btn_map.setMinimumWidth(550)    
         layout.addWidget(btn_map, alignment=Qt.AlignmentFlag.AlignCenter)
         
         btn_events = QPushButton("📅 UCSC Events")
         btn_events.clicked.connect(lambda: self.main_window.show_page("UCSCEventsPage"))
-        btn_events.setStyleSheet("""
-            background-color: #FFA500;
-            color: white;
-            border-radius: 6px;
-            padding: 8px 14px;
-            border: 2px solid #000000;
+        btn_events.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {BACK_BUTTON_BG};
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }}
+            QPushButton:hover {{
+                background-color: {BACK_HOVER_BG}
+            }}
         """)
-        layout.addWidget(btn_events)
+        btn_events.setFixedWidth(350)
+        layout.addWidget(btn_events, alignment=Qt.AlignmentFlag.AlignCenter)
 
         layout.addStretch()
         logout_container = QHBoxLayout()
@@ -869,6 +875,7 @@ class UCSCEventsPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
+            border: 2px solid #000000
         """)
         layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -997,6 +1004,10 @@ class UCSCEventsPage(QWidget):
 
 
 class MapBridge(QObject):
+    """
+    Bridge for the web channel. JavaScript calls window.bridge.mapReady()
+    when google maps has initialized.
+    """
     def __init__(self, map_page):
         super().__init__()
         self.map_page = map_page
@@ -1014,7 +1025,7 @@ class MapBridge(QObject):
         else:
             print("⚠️ Could not get location")
             return {"lat": 36.9914, "lng": -122.0609}  # UCSC fallback
-
+        
 class MapPage(QWidget):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
@@ -1023,6 +1034,8 @@ class MapPage(QWidget):
         self.pending_destination = None
         self.current_travel_mode = "DRIVING"
 
+        # Track if we've loaded the map yet
+        self._map_loaded = False
 
         # Main layout
         self.layout = QVBoxLayout()
@@ -1070,13 +1083,24 @@ class MapPage(QWidget):
         self.layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
     def load_map(self):
+        """ Actually load the QWebEngine map only once. """
+        if self._map_loaded:
+            return  # Already loaded
+
+        self._map_loaded = True
+
+        load_dotenv()
         api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_MAPS_API_KEY not found in .env")
 
+        # Read map.html and inject QWebChannel + API key
         with open("map.html", "r", encoding="utf-8") as f:
             html = f.read().replace("YOUR_API_KEY", api_key)
+        # Insert the qwebchannel script
+        html = html.replace("</head>", "<script src='qrc:///qtwebchannel/qwebchannel.js'></script></head>")
 
+        # Now create the browser and bridge
         if hasattr(self, 'browser'):
             self.layout.removeWidget(self.browser)
             self.browser.deleteLater()
@@ -1086,8 +1110,11 @@ class MapPage(QWidget):
         self.bridge = MapBridge(self)
         self.channel.registerObject("bridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
+
+        # Load the HTML
         self.browser.setHtml(html)
 
+        # Insert the browser at the *top* of the layout, or wherever you like
         self.layout.insertWidget(0, self.browser)
 
         self.map_is_ready = False
