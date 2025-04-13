@@ -6,11 +6,12 @@ import bcrypt
 import uuid
 from PyQt6.QtWidgets import QScrollArea, QMessageBox
 from datetime import datetime
-
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pymongo.mongo_client import MongoClient    
 from pymongo.server_api import ServerApi
-
+from class_forum_scraper import fetch_all_ucsc_classes
 from PyQt6.QtCore import Qt, QObject, pyqtSlot, QUrl, QVariant
 from PyQt6.QtGui import QFont, QGuiApplication
 from PyQt6.QtWidgets import (
@@ -51,9 +52,34 @@ if not password:
 uri = f"mongodb+srv://{username}:{password}@cluster0.lygyuzf.mongodb.net/?appName=Cluster0"
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client["slughub"]
+class_collection = db["all_ucsc_classes"]
+forum_collection = db["forum_posts"]
 collection = db["class_schedule"]
 user_collection = db["users"]
 
+def store_classes_in_db():
+    """Scrape the catalog, then store the entire list of courses in a single MongoDB document."""
+    classes = fetch_all_ucsc_classes()
+    if not classes:
+        print("No classes found or scraping failed.")
+        return
+
+    # We'll store them all in one doc with a known _id, e.g. "ucsc_course_list"
+    # so we can easily upsert or retrieve them.
+    doc = {
+        "_id": "ucsc_course_list",
+        "courses": classes
+    }
+    class_collection.replace_one({"_id": "ucsc_course_list"}, doc, upsert=True)
+    print(f"Stored {len(classes)} classes in the DB under _id='ucsc_course_list'.")
+
+def get_saved_ucsc_classes():
+    """Retrieve our stored course codes from the MongoDB collection."""
+    doc = class_collection.find_one({"_id": "ucsc_course_list"})
+    if doc:
+        return doc["courses"]  # e.g. ["CSE 107", "MATH 19A", ...]
+    return []
+VALID_UCSC_CLASSES = get_saved_ucsc_classes()
 ##############################
 # Password security
 ##############################
@@ -450,6 +476,26 @@ class HomePage(QWidget):
         """)
         btn_events.setFixedWidth(350)
         layout.addWidget(btn_events, alignment=Qt.AlignmentFlag.AlignCenter)
+
+
+        btn_forum = QPushButton("🗣️Class Forums")
+        btn_forum.clicked.connect(lambda: self.main_window.show_page("ForumPage"))
+        btn_forum.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {BUTTON_BG};
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000
+            }}
+            QPushButton:hover {{
+                background-color: {BUTTON_HOVER}
+            }}
+        """)
+        btn_forum.setMinimumWidth(550)
+        layout.addWidget(btn_forum, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+
 
         layout.addStretch()
         logout_container = QHBoxLayout()
@@ -1158,6 +1204,275 @@ class UCSCEventsPage(QWidget):
 
 
 
+class SelectClassPage(QWidget):
+    def __init__(self, parent=None, main_window=None, valid_codes=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.valid_codes = valid_codes or []  # big list of all "CSE 107", "MATH 19A", etc.
+
+        # Build UI
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        title = QLabel("Find Your Class Forum")
+        title.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Department line edit
+        dept_label = QLabel("Department (e.g. CSE):")
+        layout.addWidget(dept_label)
+        self.dept_input = QLineEdit()
+        layout.addWidget(self.dept_input)
+
+        # Number line edit
+        num_label = QLabel("Course Number (e.g. 107):")
+        layout.addWidget(num_label)
+        self.num_input = QLineEdit()
+        layout.addWidget(self.num_input)
+
+        # "Go" button
+        go_button = QPushButton("Go")
+        go_button.setStyleSheet("""
+            QPushButton{
+                background-color: #161a7d;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover{
+                background-color: #0a0c47;
+            }
+        """)
+        go_button.clicked.connect(self.handle_go)
+        layout.addWidget(go_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # "Back to Home"
+        back_button = QPushButton("⬅ Back to Home")
+        back_button.setStyleSheet("""
+            QPushButton{
+                background-color: #28A745;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover{
+                background-color: #0D7024;
+            }
+        """)
+        back_button.clicked.connect(lambda: self.main_window.show_page("HomePage"))
+        layout.addWidget(back_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        layout.addStretch()
+
+    def handle_go(self):
+        dept = self.dept_input.text().strip().upper()       # e.g. "CSE"
+        number = self.num_input.text().strip().upper()      # e.g. "107" or "19A"
+        full_code = f"{dept} {number}"                      # "CSE 107"
+
+        if full_code not in self.valid_codes:
+            QMessageBox.warning(self, "Invalid Class", f"'{full_code}' not found in the official UCSC class list!")
+            return
+
+        # If it's valid, let's go to the ForumPage
+        # We want the ForumPage to load that class's posts automatically
+        # One approach: add a method on ForumPage called load_specific_class(code).
+        
+        self.main_window.show_page("ForumPage")
+        forum_page = self.main_window.get_page("ForumPage")
+        forum_page.load_specific_class(full_code)
+
+
+
+
+class ForumPage(QWidget):
+    def __init__(self, parent=None, main_window=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        set_widget_bg(self)
+
+        self.current_forum_name = None
+        self.forum_selector_items = []
+
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
+
+        title_label = QLabel("Class Forums")
+        title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
+        main_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Dropdown to choose an existing forum
+        forum_label = QLabel("Select an Existing Forum:")
+        main_layout.addWidget(forum_label)
+
+        self.forum_selector = QComboBox()
+        self.forum_selector.setStyleSheet("QComboBox { background-color: #FFFFFF }")
+        self.forum_selector.currentTextChanged.connect(self.on_forum_changed)
+        main_layout.addWidget(self.forum_selector)
+
+        # Input + button to create a new forum
+        new_forum_layout = QHBoxLayout()
+        self.new_forum_input = QLineEdit()
+        self.new_forum_input.setPlaceholderText("Enter new forum name")
+        self.new_forum_input.setStyleSheet("QLineEdit { background-color: #FFFFFF }")
+        new_forum_layout.addWidget(self.new_forum_input)
+
+        self.create_forum_button = QPushButton("➕ Create Forum")
+        self.create_forum_button.setStyleSheet("""
+            QPushButton {
+                background-color: #161a7d;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #0a0c47;
+            }
+        """)
+        self.create_forum_button.clicked.connect(self.create_new_forum)
+        new_forum_layout.addWidget(self.create_forum_button)
+        main_layout.addLayout(new_forum_layout)
+
+        # Scrollable area to show posts
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_area.setWidget(self.scroll_content)
+        main_layout.addWidget(self.scroll_area, stretch=1)
+
+        # Input area for new post
+        post_label = QLabel("Write a message:")
+        main_layout.addWidget(post_label)
+
+        self.post_text = QTextEdit()
+        self.post_text.setStyleSheet("QTextEdit { background-color: #FFFFFF }")
+        self.post_text.setFixedHeight(100)
+        main_layout.addWidget(self.post_text)
+
+        post_button = QPushButton("Post")
+        post_button.setStyleSheet("""
+            QPushButton {
+                background-color: #161a7d;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #0a0c47;
+            }
+        """)
+        post_button.clicked.connect(self.handle_post)
+        main_layout.addWidget(post_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Back button
+        btn_back = QPushButton("⬅ Back to Home")
+        btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
+        btn_back.setStyleSheet("""
+            QPushButton {
+                background-color: #28A745;
+                color: white;
+                border-radius: 6px;
+                padding: 8px 14px;
+                border: 2px solid #000000;
+            }
+            QPushButton:hover {
+                background-color: #0D7024;
+            }
+        """)
+        main_layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        main_layout.addStretch()
+
+        self.load_forum_list()
+
+    def load_forum_list(self):
+        self.forum_selector.clear()
+        self.forum_selector_items = forum_collection.distinct("forum_name")
+        self.forum_selector.addItems(self.forum_selector_items)
+        if self.forum_selector_items:
+            self.current_forum_name = self.forum_selector_items[0]
+            self.load_forum_posts()
+
+    def on_forum_changed(self, new_forum):
+        self.current_forum_name = new_forum
+        self.load_forum_posts()
+
+    def create_new_forum(self):
+        new_name = self.new_forum_input.text().strip()
+        if not new_name:
+            QMessageBox.warning(self, "Error", "Forum name cannot be empty.")
+            return
+        if new_name in self.forum_selector_items:
+            QMessageBox.information(self, "Notice", "Forum already exists.")
+            return
+        self.forum_selector.addItem(new_name)
+        self.forum_selector.setCurrentText(new_name)
+        self.new_forum_input.clear()
+        self.forum_selector_items.append(new_name)
+
+    def load_forum_posts(self):
+        for i in reversed(range(self.scroll_layout.count())):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+        posts_cursor = forum_collection.find({"forum_name": self.current_forum_name}).sort("timestamp", 1)
+        for doc in posts_cursor:
+            self.add_post_widget(doc)
+
+        QApplication.processEvents()
+        self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
+        self.scroll_layout.addStretch()
+
+    def add_post_widget(self, doc):
+        post_user = doc.get("user", "Unknown")
+        post_text = doc.get("message", "")
+        post_time = doc.get("timestamp")
+        time_str = post_time.strftime("%b %d %Y, %I:%M %p") if post_time else ""
+
+        post_label = QLabel(f"<b>{post_user}</b> @ {time_str}<br/><br/>{post_text}")
+        post_label.setStyleSheet("""
+            QLabel {
+                background-color: #DDEEFF;
+                border: 1px solid #999;
+                border-radius: 6px;
+                padding: 10px;
+            }
+        """)
+        post_label.setWordWrap(True)
+        self.scroll_layout.addWidget(post_label)
+
+    def handle_post(self):
+        global current_user
+        if not current_user:
+            QMessageBox.warning(self, "Not logged in", "You must be logged in to post.")
+            return
+
+        msg = self.post_text.toPlainText().strip()
+        if not msg:
+            return
+
+        forum_collection.insert_one({
+            "forum_name": self.current_forum_name,
+            "user": current_user,
+            "message": msg,
+            "timestamp": datetime.now()
+        })
+
+        self.post_text.clear()
+        self.load_forum_posts()
+
+
+
+
+
+
+
+
 
 class MapBridge(QObject):
     def __init__(self, map_page):
@@ -1377,11 +1692,17 @@ class MainWindow(QMainWindow):
             ("ResourcesPage", ResourcesPage),
             ("ScheduleInputPage", ScheduleInputPage),
             ("MapPage", MapPage),
-            ("UCSCEventsPage",UCSCEventsPage)
+            ("UCSCEventsPage",UCSCEventsPage),
+            ("ForumPage",ForumPage),
+            ("SelectClassPage", SelectClassPage)
         ]
 
         for name, PageClass in pages:
-            page_instance = PageClass(main_window=self)
+            if name == "SelectClassPage":
+                page_instance = PageClass(main_window=self, valid_codes=VALID_UCSC_CLASSES)
+            else:
+                page_instance = PageClass(main_window=self)
+
             index = self.stacked_widget.addWidget(page_instance)
             self.page_ids[name] = index
 
@@ -1406,6 +1727,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    store_classes_in_db()
     app = QApplication(sys.argv)
 
     app.setStyleSheet(f"""
