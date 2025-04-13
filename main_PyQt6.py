@@ -27,6 +27,7 @@ from eventscraper import scrape_ucsc_events
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtCore import QTimer
 import geocoder
+import re
 
 
 
@@ -296,8 +297,17 @@ class RegisterPage(QWidget):
         self.pass_edit = QLineEdit()
         self.pass_edit.setFixedWidth(400)
         self.pass_edit.setStyleSheet("QLineEdit { background-color: #FFFFFF}")
+
+        self.pass_edit.textChanged.connect(self.update_password_validation)
+
         self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.pass_edit, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Password validation feedback
+        self.label_length = QLabel("❌ Minimum 8 characters")
+        self.label_digit = QLabel("❌ At least 1 digit")
+        layout.addWidget(self.label_length, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label_digit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Confirm Password
         confirm_pass_label = QLabel("Confirm Password:")
@@ -313,9 +323,10 @@ class RegisterPage(QWidget):
         self.message_label.setStyleSheet("color: red; background: transparent")
         layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        btn_register = QPushButton("✅ Register")
-        btn_register.clicked.connect(self.register_user)
-        btn_register.setStyleSheet(f"""
+        self.btn_register = QPushButton("✅ Register")
+        self.btn_register.clicked.connect(self.register_user)
+        self.btn_register.setEnabled(False)  # Initially disabled
+        self.btn_register.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BUTTON_BG};   /* Bootstrap green */
                 color: white;
@@ -329,8 +340,8 @@ class RegisterPage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        btn_register.setFixedWidth(250)
-        layout.addWidget(btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.btn_register.setFixedWidth(250)
+        layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
 
         btn_back = QPushButton("⬅ Back to Login")
         btn_back.clicked.connect(lambda: self.main_window.show_page("LoginPage"))
@@ -360,6 +371,20 @@ class RegisterPage(QWidget):
         label.setStyleSheet("background: transparent;")
         layout.addWidget(label, alignment= Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
 
+    def validate_password(self, password):
+            has_length = len(password) >= 8
+            has_digit = bool(re.search(r'\d', password))
+            return has_length, has_digit
+
+    def update_password_validation(self):
+        password = self.pass_edit.text()
+        has_length, has_digit = self.validate_password(password)
+
+        self.label_length.setText(f"{'✅' if has_length else '❌'} Minimum 8 characters")
+        self.label_digit.setText(f"{'✅' if has_digit else '❌'} At least 1 digit")
+
+        self.btn_register.setEnabled(has_length and has_digit)       
+
     def register_user(self):
         username = self.user_edit.text().strip()
         email = self.email_edit.text().strip()
@@ -369,8 +394,14 @@ class RegisterPage(QWidget):
         if not username or not email or not password or not confirm:
             self.message_label.setText("⚠️ Please fill out all fields.")
             return
+
         if password != confirm:
             self.message_label.setText("⚠️ Passwords do not match.")
+            return
+
+        has_length, has_digit = self.validate_password(password)
+        if not (has_length and has_digit):
+            self.message_label.setText("⚠️ Password doesn't meet requirements.")
             return
 
         success, msg = create_user(username, email, password)
