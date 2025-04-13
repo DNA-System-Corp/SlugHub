@@ -400,18 +400,18 @@ class HomePage(QWidget):
                 background-color: {BUTTON_HOVER}
             }}
         """)
-        btn_map.setMinimumWidth(550)    
+        btn_map.setMinimumWidth(550)
         layout.addWidget(btn_map, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        btn_events = QPushButton("📅 UCSC Events")
+        btn_events = QPushButton("📅Slug Events")
         btn_events.clicked.connect(lambda: self.main_window.show_page("UCSCEventsPage"))
         btn_events.setStyleSheet(f"""
             QPushButton {{
-                background-color: {BACK_BUTTON_BG};
+                background-color: {BACK_BUTTON_BG};   /* Bootstrap green */
                 color: white;
                 border-radius: 6px;
                 padding: 8px 14px;
-                border: 2px solid #000000;
+                border: 2px solid #000000
             }}
             QPushButton:hover {{
                 background-color: {BACK_HOVER_BG}
@@ -755,19 +755,34 @@ class ScheduleInputPage(QWidget):
 
             # Info Label
             label = QLabel(f"{cls['name']}\n{day_str} @ {cls['start_time']}\n{cls['location']}")
-            label.setStyleSheet("""
-                QLabel {
-                    background-color: #DDEEFF;
-                    color: #000000;
-                    border: 1px solid #999;
-                    border-radius: 6px;
-                    padding: 10px;
-                    font-size: 14px;
-                }
-                QLabel:hover {
-                    background-color: #c9def2;
-                }
-            """)
+            if cls.get("is_event"):
+                label.setStyleSheet("""
+                    QLabel {
+                        background-color: #FFF3CD;  /* light yellow */
+                        color: #000000;
+                        border: 2px dashed #FFB000;
+                        border-radius: 6px;
+                        padding: 10px;
+                        font-size: 14px;
+                    }
+                    QLabel:hover {
+                        background-color: #FFE8A1;
+                    }
+                """)
+            else:
+                label.setStyleSheet("""
+                    QLabel {
+                        background-color: #DDEEFF;
+                        color: #000000;
+                        border: 1px solid #999;
+                        border-radius: 6px;
+                        padding: 10px;
+                        font-size: 14px;
+                    }
+                    QLabel:hover {
+                        background-color: #c9def2;
+                    }
+                """)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setFixedWidth(250)
 
@@ -856,27 +871,20 @@ class UCSCEventsPage(QWidget):
         self.scroll_layout = QVBoxLayout(self.content)
         self.scroll.setWidget(self.content)
 
-        # Refresh button
-        btn_refresh = QPushButton("🔄 Refresh Events")
-        btn_refresh.clicked.connect(self.refresh_events)
-        btn_refresh.setStyleSheet("""
-            background-color: #5BB2F7;
-            color: white;
-            border-radius: 6px;
-            padding: 6px 14px;
-            border: 2px solid #000000
-        """)
-        layout.addWidget(btn_refresh, alignment=Qt.AlignmentFlag.AlignHCenter)
-
+        
         # Back button
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
+            QPushButton{
             background-color: #28A745;
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
-            border: 2px solid #000000
+            }
+            QPushButton:hover{
+                background-color: #0D7024
+            }
         """)
         layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -915,49 +923,73 @@ class UCSCEventsPage(QWidget):
         is_pinned = any(event["title"] == e["title"] for e in self.pinned_events)
         prefix = "📌🟡 " if is_pinned else "🟡 "
         title = QLabel(f"{prefix}{event['title']}")
+        title.setWordWrap(True)
         date = QLabel(f"📆 {event['date']}")
-        location = QLabel(f"📍 {event['location']}")
-        price = QLabel(f"💵 {event['price'] if event['price'] else 'FREE'}")
-
+        location_text = event.get("location", "").strip()
+        location_display = location_text if location_text and location_text != "--" else "TBD"
+        location = QLabel(f"📍 {location_display}")
+        event_price = event.get("price", "").strip()
+        price_display = "FREE" if not event_price or event_price == "--" else event_price
+        price = QLabel(f"💵 {price_display}")
         for label in [title, date, location, price]:
             label.setStyleSheet("color: #FFFFFF; font-size: 14px;")
 
         # Pin button (smaller with hover)
-        btn_pin = QPushButton("📌")
-        btn_pin.setFixedSize(30, 30)
+        btn_pin = QPushButton("Pin📌")
+        btn_pin.setFixedSize(26, 26)
         btn_pin.setStyleSheet("""
             QPushButton {
-                background-color: #FFD700;
+                background-color: #f0d954;
                 color: black;
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 3px;
+                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #E6C200;
+                background-color: #d4be3f;
             }
         """)
         btn_pin.clicked.connect(lambda _, e=event: self.pin_event(e))
 
         # Hide button (smaller with hover + fast remove)
-        btn_hide = QPushButton("❌")
-        btn_hide.setFixedSize(30, 30)
+        btn_hide = QPushButton("Hide❌")
+        btn_hide.setFixedSize(26, 26)
         btn_hide.setStyleSheet("""
             QPushButton {
-                background-color: #FF6666;
+                background-color: #2d32ad;
                 color: white;
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 3px;
+                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #CC4444;
+                background-color: #1d218f;
             }
         """)
         btn_hide.clicked.connect(lambda _, e=event: self.quick_hide_event(e))
+
+        # Add to calendar button (one-time class)
+        btn_calendar = QPushButton("Add to 📆")
+        btn_calendar.setFixedSize(26, 26)
+        btn_calendar.setStyleSheet("""
+            QPushButton {
+                background-color: #f0d954;
+                color: white;
+                border-radius: 3px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #d4be3f;
+            }
+        """)
+        btn_calendar.setObjectName("calendarBtn")
+        btn_calendar.clicked.connect(lambda _, e=event: self.add_event_to_schedule(e))
+
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         btn_layout.addWidget(btn_pin)
         btn_layout.addWidget(btn_hide)
+        btn_layout.addWidget(btn_calendar)
+        btn_layout.setSpacing(6)
 
         card_layout = QVBoxLayout()
         card_layout.addWidget(title)
@@ -982,9 +1014,9 @@ class UCSCEventsPage(QWidget):
         """)
 
 # Prevent layout jumps
-        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        frame.setFixedHeight(160)  # Tweak as needed for visual balance
-
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed) # Tweak as needed for visual balance
+        frame.setContentsMargins(8, 8, 8, 8)
+        frame.setFixedHeight(260)  # Bump up slightly for padding room
         # Track event data for quick lookup
         frame.event_data = event
         self.scroll_layout.addWidget(frame)
@@ -1035,15 +1067,47 @@ class UCSCEventsPage(QWidget):
         if next_events:
             self.display_event_card(next_events[0])
 
+    def add_event_to_schedule(self, event):
+        global current_user
+        if not current_user:
+            return
+
+        # Attempt to parse start time from the event date string
+        date_str = event["date"]
+        start_time = "10:00 AM"  # default fallback
+        event_day = []
+
+        # Try extracting time info from event['date']
+        if "am" in date_str.lower() or "pm" in date_str.lower():
+            try:
+                parts = date_str.split(',')
+                if len(parts) > 2:
+                    date_part = parts[1].strip()
+                    time_part = parts[2].strip().split()[0]
+                    start_time = time_part
+                day_abbr = parts[0].strip()[:3]
+                day_map = {"Mon": "M", "Tue": "T", "Wed": "W", "Thu": "Th", "Fri": "F"}
+                if day_abbr in day_map:
+                    event_day = [day_map[day_abbr]]
+            except Exception as e:
+                print(f"🧠 Couldn't parse date from: {event['date']}")
+
+        class_info = {
+            "id": str(uuid.uuid4()),
+            "name": event["title"],
+            "location": event["location"] or "TBD",
+            "start_time": start_time,
+            "days": event_day or ["M"],  # default to Monday
+            "is_event": True
+        }
+
+        save_class(class_info, current_user)
+        QMessageBox.information(self, "✅ Added!", f"'{event['title']}' was added to your schedule.")
 
 
 
 
 class MapBridge(QObject):
-    """
-    Bridge for the web channel. JavaScript calls window.bridge.mapReady()
-    when google maps has initialized.
-    """
     def __init__(self, map_page):
         super().__init__()
         self.map_page = map_page
@@ -1061,7 +1125,7 @@ class MapBridge(QObject):
         else:
             print("⚠️ Could not get location")
             return {"lat": 36.9914, "lng": -122.0609}  # UCSC fallback
-        
+
 class MapPage(QWidget):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
@@ -1070,8 +1134,6 @@ class MapPage(QWidget):
         self.pending_destination = None
         self.current_travel_mode = "DRIVING"
 
-        # Track if we've loaded the map yet
-        self._map_loaded = False
 
         # Main layout
         self.layout = QVBoxLayout()
@@ -1119,24 +1181,13 @@ class MapPage(QWidget):
         self.layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
     def load_map(self):
-        """ Actually load the QWebEngine map only once. """
-        if self._map_loaded:
-            return  # Already loaded
-
-        self._map_loaded = True
-
-        load_dotenv()
         api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_MAPS_API_KEY not found in .env")
 
-        # Read map.html and inject QWebChannel + API key
         with open("map.html", "r", encoding="utf-8") as f:
             html = f.read().replace("YOUR_API_KEY", api_key)
-        # Insert the qwebchannel script
-        html = html.replace("</head>", "<script src='qrc:///qtwebchannel/qwebchannel.js'></script></head>")
 
-        # Now create the browser and bridge
         if hasattr(self, 'browser'):
             self.layout.removeWidget(self.browser)
             self.browser.deleteLater()
@@ -1146,11 +1197,8 @@ class MapPage(QWidget):
         self.bridge = MapBridge(self)
         self.channel.registerObject("bridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
-
-        # Load the HTML
         self.browser.setHtml(html)
 
-        # Insert the browser at the *top* of the layout, or wherever you like
         self.layout.insertWidget(0, self.browser)
 
         self.map_is_ready = False
@@ -1261,7 +1309,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SlugHub - Student Assistance")
-        self.setFixedSize(600, 800)
+        self.setFixedSize(850, 900)
 
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
