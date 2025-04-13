@@ -1198,7 +1198,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SlugHub - Student Assistance")
-        self.setFixedSize(800, 700)
+        self.setFixedSize(1200, 900)
 
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
