@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Map with Travel Mode</title>
+    <title>Smart Map</title>
     <meta charset="utf-8" />
     <style>
       html, body, #map {
@@ -18,49 +18,67 @@
       let map;
       let directionsService;
       let directionsRenderer;
+      let userLocation = null;
       let mapReady = false;
-      let currentTravelMode = "WALKING";
+      let currentTravelMode = "DRIVING";
+      let pendingDestination = null;
 
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 37.0, lng: -122.06 },
-          zoom: 12
+          center: { lat: 36.9914, lng: -122.0609 }, // UCSC campus fallback
+          zoom: 14
         });
 
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer();
         directionsRenderer.setMap(map);
-        mapReady = true;
 
-        // Notify Python via QWebChannel
+        // Try to get user's location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              console.log("✅ Location acquired.");
+              if (pendingDestination) {
+                createRoute(pendingDestination);
+              }
+            },
+            () => {
+              console.warn("⚠️ Geolocation failed. Using fallback.");
+              userLocation = { lat: 36.9914, lng: -122.0609 };
+              if (pendingDestination) {
+                createRoute(pendingDestination);
+              }
+            }
+          );
+        } else {
+          userLocation = { lat: 36.9914, lng: -122.0609 };
+        }
+
+        mapReady = true;
         if (window.bridge && window.bridge.mapReady) {
           window.bridge.mapReady();
-        } else {
-          setTimeout(() => {
-            if (window.bridge && window.bridge.mapReady) {
-              window.bridge.mapReady();
-            }
-          }, 500);
         }
       }
 
       function setTravelMode(mode) {
         if (["DRIVING", "WALKING", "BICYCLING", "TRANSIT"].includes(mode)) {
           currentTravelMode = mode;
-          console.log("✅ Travel mode set to", mode);
-        } else {
-          console.error("❌ Invalid travel mode:", mode);
+          console.log("🚦 Travel mode set to:", mode);
         }
       }
 
-      function createRoute(origin, destination) {
-        if (!mapReady) {
-          console.error("Map not ready — can't create route yet.");
+      function createRoute(destination) {
+        if (!mapReady || !userLocation) {
+          pendingDestination = destination;
           return;
         }
 
         const request = {
-          origin: origin,
+          origin: userLocation,
           destination: destination,
           travelMode: currentTravelMode
         };
@@ -68,12 +86,14 @@
         directionsService.route(request, (result, status) => {
           if (status === "OK") {
             directionsRenderer.setDirections(result);
+            console.log("✅ Route displayed.");
           } else {
-            console.error("Route error:", status);
+            console.error("❌ Route failed:", status);
           }
         });
       }
 
+      // Setup QWebChannel for Python ↔ JS bridge
       new QWebChannel(qt.webChannelTransport, function(channel) {
         window.bridge = channel.objects.bridge;
       });
@@ -81,9 +101,7 @@
 
     <script
       src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"
-      async
-      defer
-      loading="async"
-    ></script>
+      async defer loading="async">
+    </script>
   </body>
 </html>

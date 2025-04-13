@@ -5,20 +5,29 @@ import os
 import bcrypt
 import uuid
 
-from PyQt6.QtWidgets import QSizePolicy
-from PyQt6.QtWebEngineWidgets import QWebEngineView  # Add at the top
+from datetime import datetime
 
 from dotenv import load_dotenv
 from pymongo.mongo_client import MongoClient    
 from pymongo.server_api import ServerApi
 
+from PyQt6.QtCore import Qt, QObject, pyqtSlot, QUrl
+from PyQt6.QtGui import QFont, QGuiApplication
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QStackedWidget, QWidget,
-    QLabel, QLineEdit, QPushButton, QTextEdit, QComboBox,
-    QCheckBox, QGridLayout, QVBoxLayout, QHBoxLayout
+    QApplication, QMainWindow, QStackedWidget, QWidget, QLabel, QLineEdit,
+    QPushButton, QTextEdit, QComboBox, QCheckBox, QGridLayout, QVBoxLayout,
+    QHBoxLayout, QSizePolicy
 )
-from PyQt6.QtGui import QFont, QDesktopServices, QPixmap
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtGui import QGuiApplication, QDesktopServices, QPixmap
+
+
+
+# Must do this BEFORE QApplication is created
+QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+    Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+)
 
 ##############################
 # Global session variable
@@ -241,7 +250,7 @@ class RegisterPage(QWidget):
         btn_register = QPushButton("✅ Register")
         btn_register.clicked.connect(self.register_user)
         btn_register.setStyleSheet("""
-            background-color: #30D1E4;   /* Bootstrap green */
+            background-color: #5BB2F7;   /* Bootstrap green */
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -757,30 +766,72 @@ class ScheduleInputPage(QWidget):
             self.schedule_data = get_all_classes(current_user)
         self.display_schedule()
 
+##############################
+# MapPage with route-to-next-class
+##############################
+DAY_MAP = {
+    0: "M",   # Monday
+    1: "T",
+    2: "W",
+    3: "Th",
+    4: "F",
+    # ignoring Sat(5)/Sun(6)
+}
+
+class MapBridge(QObject):
+    """
+    Bridge for the web channel. JavaScript calls window.bridge.mapReady()
+    when google maps has initialized.
+    """
+    def __init__(self, map_page):
+        super().__init__()
+        self.map_page = map_page
+
+    @pyqtSlot()
+    def mapReady(self):
+        self.map_page.on_map_ready()
 
 class MapPage(QWidget):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
         self.main_window = main_window
+        self.map_is_ready = False
+        self.pending_destination = None
+        self.current_travel_mode = "DRIVING"
 
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        # Track if we've loaded the map yet
+        self._map_loaded = False
 
-        # Load API key from .env
-        load_dotenv()
-        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_MAPS_API_KEY not found in .env")
+        # Main layout
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
 
-        # Read and inject API key into HTML
-        with open("map.html", "r", encoding="utf-8") as f:
-            html = f.read().replace("YOUR_API_KEY", api_key)
+        #
+        # 1) Top row: Travel Mode Buttons
+        #
+        mode_layout = QHBoxLayout()
 
-        browser = QWebEngineView()
-        browser.setHtml(html)
-        layout.addWidget(browser)
+        btn_drive = QPushButton("Drive")
+        btn_drive.clicked.connect(lambda: self.set_travel_mode("DRIVING"))
+        mode_layout.addWidget(btn_drive)
 
-        # Back button
+        btn_walk = QPushButton("Walk")
+        btn_walk.clicked.connect(lambda: self.set_travel_mode("WALKING"))
+        mode_layout.addWidget(btn_walk)
+
+        btn_bike = QPushButton("Bike")
+        btn_bike.clicked.connect(lambda: self.set_travel_mode("BICYCLING"))
+        mode_layout.addWidget(btn_bike)
+
+        btn_transit = QPushButton("Transit")
+        btn_transit.clicked.connect(lambda: self.set_travel_mode("TRANSIT"))
+        mode_layout.addWidget(btn_transit)
+
+        self.layout.addLayout(mode_layout)
+
+        #
+        # 2) "Back to Home" Button
+        #
         btn_back = QPushButton("⬅ Back to Home")
         btn_back.clicked.connect(lambda: self.main_window.show_page("HomePage"))
         btn_back.setStyleSheet("""
@@ -794,9 +845,121 @@ class MapPage(QWidget):
                 background-color: #0D7024
             }
         """)
-        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        layout.addStretch()
+    def load_map(self):
+        """ Actually load the QWebEngine map only once. """
+        if self._map_loaded:
+            return  # Already loaded
+
+        self._map_loaded = True
+
+        load_dotenv()
+        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_MAPS_API_KEY not found in .env")
+
+        # Read map.html and inject QWebChannel + API key
+        with open("map.html", "r", encoding="utf-8") as f:
+            html = f.read().replace("YOUR_API_KEY", api_key)
+        # Insert the qwebchannel script
+        html = html.replace("</head>", "<script src='qrc:///qtwebchannel/qwebchannel.js'></script></head>")
+
+        # Now create the browser and bridge
+        self.browser = QWebEngineView()
+        self.channel = QWebChannel()
+        self.bridge = MapBridge(self)
+        self.channel.registerObject("bridge", self.bridge)
+        self.browser.page().setWebChannel(self.channel)
+
+        # Load the HTML
+        self.browser.setHtml(html)
+
+        # Insert the browser at the *top* of the layout, or wherever you like
+        self.layout.insertWidget(0, self.browser)
+
+    def set_travel_mode(self, mode):
+        """Change travel mode and tell the JS side (setTravelMode)."""
+        self.current_travel_mode = mode
+        # If the map is already ready, update the JS travel mode
+        if self.map_is_ready:
+            script = f'setTravelMode("{mode}");'
+            self.browser.page().runJavaScript(script)
+            # Optionally reroute if there's already a destination
+            if self.pending_destination:
+                self.route_to(self.pending_destination)
+
+    def on_map_ready(self):
+        """
+        Called once JS side map initialization is finished.
+        """
+        self.map_is_ready = True
+
+        # Make sure the map starts with the current travel mode
+        self.set_travel_mode(self.current_travel_mode)
+
+        # Attempt routing to next class
+        self.route_to_next_class()
+
+    def route_to(self, destination):
+        """
+        Sends the createRoute() call to JavaScript.
+        """
+        if not self.map_is_ready:
+            self.pending_destination = destination
+            return
+
+        self.pending_destination = destination  # store it so we can re-route after changing modes
+        script = f'createRoute("{destination}");'
+        self.browser.page().runJavaScript(script)
+
+    def route_to_next_class(self):
+        """
+        Looks up the user's next upcoming class from the DB and calls route_to().
+        """
+        global current_user
+        if not current_user:
+            print("No user logged in; can't load schedule.")
+            return
+
+        schedule = get_all_classes(current_user)
+        if not schedule:
+            print("User has no classes saved.")
+            return
+
+        today = datetime.today()
+        now_str = today.strftime("%I:%M %p")  # e.g. "02:40 PM"
+        weekday_index = today.weekday()       # 0=Mon, 6=Sun
+
+        upcoming_classes = []
+
+        # Look up to 7 days ahead
+        for offset in range(7):
+            check_day = (weekday_index + offset) % 7
+            day_letter = DAY_MAP.get(check_day)
+            if not day_letter:
+                # skip Sat/Sun or anything out of DAY_MAP
+                continue
+
+            for cls in schedule:
+                if day_letter in cls["days"]:
+                    # If it's the same day, skip classes that already started
+                    if offset == 0 and cls["start_time"] <= now_str:
+                        continue
+                    upcoming_classes.append((offset, cls))
+
+            # If we found any classes for this day, no need to keep looking further days
+            if upcoming_classes:
+                break
+
+        if not upcoming_classes:
+            print("No upcoming classes found in the next week.")
+            return
+
+        # Sort by day-offset first, then start time
+        next_class = sorted(upcoming_classes, key=lambda x: (x[0], x[1]["start_time"]))[0][1]
+        print(f"Next class: {next_class['name']} at {next_class['start_time']} → {next_class['location']}")
+        self.route_to(next_class["location"])
 
 
 ##############################
@@ -842,6 +1005,10 @@ class MainWindow(QMainWindow):
         # Refresh if it's the schedule input page
         if page_name == "ScheduleInputPage":
             widget.refresh()
+
+        # If the page is the map page, load the map
+        if page_name == "MapPage":
+            widget.load_map()
 
         self.stacked_widget.setCurrentIndex(idx)
 
