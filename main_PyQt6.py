@@ -104,11 +104,12 @@ def save_class(data, user):
 ##############################
 # Constants / Styles
 ##############################
-APP_BG_COLOR     = "#7788b5"     # Soft light gray background
+APP_BG_COLOR     = "#8fc1ff"     # Soft light gray background
 TEXT_COLOR       = "#000000"     # Black text
-BUTTON_BG        = "#0077CC"     # Blue buttons
+BUTTON_BG        = "#161a7d"     # Blue buttons
 BUTTON_HOVER     = "#3399FF"     # Lighter blue on hover
 BACK_BUTTON_BG   = "#DDEEFF"     # Soft blue for secondary/back buttons
+BACK_HOVER_BG    = "FFFFFF"
 BACK_BUTTON_TEXT = "#000000"     # Black text for back buttons
 BUTTON_TEXT      = "#000000"     # Black text for buttons
 
@@ -165,7 +166,7 @@ class LoginPage(QWidget):
             border: 2px solid #000000
             }
             QPushButton:hover{
-                background-color: #0d7024
+                background-color: {BUTTON_HOVER}
             }
         """)
         layout.addWidget(btn_login)
@@ -185,6 +186,14 @@ class LoginPage(QWidget):
             }
         """)
         layout.addWidget(btn_register)
+
+        label = QLabel(self)
+        pixmap = QPixmap('Sluggy.png')
+        scaled_pixmap = pixmap.scaled(500, 300)
+        label.setPixmap(scaled_pixmap)
+        layout.addWidget(label, alignment= Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
+
+       # label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addStretch()
 
@@ -249,12 +258,12 @@ class RegisterPage(QWidget):
 
         btn_register = QPushButton("✅ Register")
         btn_register.clicked.connect(self.register_user)
-        btn_register.setStyleSheet("""
-            background-color: #5BB2F7;   /* Bootstrap green */
+        btn_register.setStyleSheet(f"""
+            background-color: {BUTTON_BG};   /* Bootstrap green */
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
-            border: 2px solid #000000
+            border: 2px solid #000000;
         """)
         layout.addWidget(btn_register)
 
@@ -267,7 +276,7 @@ class RegisterPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
-            border: 2px solid #000000
+            border: 2px solid #000000;
             }
             QPushButton:hover{
                 background-color: #0D7024
@@ -318,7 +327,7 @@ class HomePage(QWidget):
         btn_schedule.clicked.connect(lambda: self.main_window.show_page("ScheduleInputPage"))
         btn_schedule.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;   /* Bootstrap green */
+            background-color: {BUTTON_BG};   /* Bootstrap green */
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -368,7 +377,7 @@ class HomePage(QWidget):
         btn_map.clicked.connect(lambda: self.main_window.show_page("MapPage"))
         btn_map.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;
+            background-color: {BUTTON_BG};
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -420,7 +429,7 @@ class ResourcesPage(QWidget):
         btn_textbook.clicked.connect(lambda: open_link("https://ucsc.textbookx.com/"))
         btn_textbook.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;   /* Bootstrap green fbe35c*/
+            background-color: {BUTTON_BG};   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -436,7 +445,7 @@ class ResourcesPage(QWidget):
         btn_canvas.clicked.connect(lambda: open_link("https://canvas.ucsc.edu"))
         btn_canvas.setStyleSheet("""
             QPushButton{
-            background-color: #FBE35C;   /* Bootstrap green fbe35c*/
+            background-color: {BACK_BUTTON_BG};   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -452,7 +461,7 @@ class ResourcesPage(QWidget):
         btn_mycusc.clicked.connect(lambda: open_link("https://my.ucsc.edu/psc/csprd/EMPLOYEE/SA/c/NUI_FRAMEWORK.PT_LANDINGPAGE.GBL?"))
         btn_mycusc.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;   /* BLUE*/
+            background-color: {BUTTON_BG};   /* BLUE*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -477,7 +486,7 @@ class ResourcesPage(QWidget):
         btn_mchenry.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16577"))
         btn_mchenry.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;   /* YELLOW*/
+            background-color: {BUTTON_BG};   /* YELLOW*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -493,7 +502,7 @@ class ResourcesPage(QWidget):
         btn_se.clicked.connect(lambda: open_link("https://calendar.library.ucsc.edu/spaces?lid=16578"))
         btn_se.setStyleSheet("""
             QPushButton{
-            background-color: #FBE35C;   /* Bootstrap green fbe35c*/
+            background-color: {BACK_BUTTON_BG};   /* Bootstrap green fbe35c*/
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
@@ -579,7 +588,10 @@ class ScheduleInputPage(QWidget):
         # Start Time
         lbl_start_time = QLabel("Start Time:")
         self.combo_start_time = QComboBox()
-        self.combo_start_time.setStyleSheet("QComboBox { background-color: #FFFFFF}")
+        self.combo_start_time.setStyleSheet('''
+            QComboBox { background-color: #FFFFFF}
+            QComboBox QAbstractItemView { background-color: #FFFFFF }
+            ''')
         form_layout.addWidget(lbl_start_time, 3, 0, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addWidget(self.combo_start_time, 3, 1)
 
@@ -588,10 +600,11 @@ class ScheduleInputPage(QWidget):
         btn_add.clicked.connect(self.add_class)
         btn_add.setStyleSheet("""
             QPushButton{
-            background-color: #30D1E4;
+            background-color: {BUTTON_BG};
             color: white;
             border-radius: 6px;
             padding: 6px 10px;
+            border: 2px solid #000000;
             }
             QPushButton:hover{
                 background-color: #159DAD
@@ -619,6 +632,7 @@ class ScheduleInputPage(QWidget):
             color: white;
             border-radius: 6px;
             padding: 8px 14px;
+            border: 2px solid #000000;
             }
             QPushButton:hover{
                 background-color: #0D7024
